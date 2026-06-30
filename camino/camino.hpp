@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <unordered_set>
-#include "../grafo/grafo.h"
+#include "../grafo/grafo.hpp"
 
 class Camino {
 private:
@@ -25,7 +25,6 @@ public:
     int getLargo();
 
     bool nodoFueVisitado(int id) const;
-    void marcarNodoVisitado(int id);
 
     bool intercambiarNodos(int id1, int id2);
 
@@ -39,7 +38,7 @@ public:
 
     bool esCaminoCompleto();
     float getRatioNodo(int id);
-    void reemplazarNodo(int oldId, int newId, bool recalcular = true);
+    void reemplazarNodo(int oldId, int newId);
     std::vector<int> getCamino() const;
 
     int getPosicionNodo(int idNodo);

@@ -1,4 +1,4 @@
-#include "camino.h"
+#include "camino.hpp"
 #include <stdexcept>
 
 using namespace std;
@@ -7,6 +7,7 @@ Camino::Camino() : pesoTotal(0), beneficioTotal(0), grafo(nullptr) {}
 
 Camino::Camino(vector<int> camino, const Grafo& grafo) :  pesoTotal(0), beneficioTotal(0), camino(camino){
     this->grafo = &grafo;
+    for (int id : camino) visitados.insert(id);
     calcularYAsignarPesoYBeneficio();
 }
 
@@ -30,7 +31,7 @@ void Camino::agregarNodo(int id){
 
 void Camino::eliminarNodo(int id){
     // borrar del camino
-    for (int i = 0; i < camino.size() ; i++){
+    for (int i = 0; i < (int)camino.size() ; i++){
         if (camino[i] == id){
             Nodo temp = grafo->getArista(camino[i - 1], id);
             Nodo temp2 = grafo->getArista(id, camino[i+1]);
@@ -71,7 +72,7 @@ void Camino::calcularYAsignarPesoYBeneficio(){
 
     int costo = 0;
     int beneficio = 0;
-    for (int i = 1; i < camino.size(); i++){
+    for (int i = 1; i < (int) camino.size(); i++){
         Nodo temp = grafo->getArista(camino[i -1], camino[i]);
         costo += temp.costo;
         beneficio += temp.beneficio;
@@ -79,13 +80,6 @@ void Camino::calcularYAsignarPesoYBeneficio(){
 
     pesoTotal = costo;
     beneficioTotal = beneficio;
-}
-
-void Camino::marcarNodoVisitado(int id){
-    if (visitados.find(id) != visitados.end()){
-        return;
-    }
-    visitados.insert(id);
 }
 
 bool Camino::nodoFueVisitado(int id) const {
@@ -135,13 +129,13 @@ float Camino::getRatioNodo(int id){
     return -1.0f;
 }
 
-void Camino::reemplazarNodo(int oldId, int newId, bool recalcular = true){
+void Camino::reemplazarNodo(int oldId, int newId){
     for (int i = 1; i < (int)camino.size() - 1; i++){
         if (camino[i] == oldId){
             visitados.erase(oldId);
             camino[i] = newId;
             visitados.insert(newId);
-            if (recalcular) calcularYAsignarPesoYBeneficio();
+            calcularYAsignarPesoYBeneficio();
             return;
         }
     }

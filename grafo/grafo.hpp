@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
-#include "../nodo/nodo.h"
+#include "../nodo/nodo.hpp"
 
 class Grafo {
 private:
@@ -31,4 +31,5 @@ public:
     Nodo getArista(int a, int b)const;
 
     bool existeArista(int origen, int destino) const;
+
 };

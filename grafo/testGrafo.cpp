@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
-#include "grafo.h"
+#include "grafo.hpp"
 
 void test_getters() {
     Grafo g(5, 6, 20);

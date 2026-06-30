@@ -1,1 +1,5 @@
 *.md
+.idea
+testCamino
+testGrafo
+testAlgoritmo

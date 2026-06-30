@@ -1,6 +1,6 @@
 #include <cassert>
 #include <iostream>
-#include "camino.h"
+#include "camino.hpp"
 
 // Grafo de prueba:
 // 0->1 (costo=2, beneficio=3)
