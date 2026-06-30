@@ -1,6 +1,6 @@
 #pragma once
-#include "../grafo/grafo.hpp"
-#include "../camino/camino.hpp"
+#include "../grafo/grafo.h"
+#include "../camino/camino.h"
 
 
 class SolverGreedy {

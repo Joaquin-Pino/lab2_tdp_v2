@@ -1,4 +1,4 @@
-#include "grafo.hpp"
+#include "grafo.h"
 #include <fstream>
 #include <stdexcept>
 #include <queue>

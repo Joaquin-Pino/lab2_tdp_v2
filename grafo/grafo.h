@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
-#include "../nodo/nodo.hpp"
+#include "../nodo/nodo.h"
 
 class Grafo {
 private:

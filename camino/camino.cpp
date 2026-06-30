@@ -1,4 +1,4 @@
-#include "camino.hpp"
+#include "camino.h"
 #include <stdexcept>
 
 using namespace std;

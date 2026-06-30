@@ -4,19 +4,23 @@ CXXFLAGS = -std=c++20 -Wall
 GRAFO_SRC         = grafo/grafo.cpp
 CAMINO_SRC        = camino/camino.cpp
 SOLVER_GREEDY_SRC = solverGreedy/solverGreedy.cpp
+ALGORITMO_SRC     = algoritmos/algoritmo.cpp
 
-HEADERS = nodo/nodo.hpp grafo/grafo.hpp camino/camino.hpp solverGreedy/solverGreedy.hpp
+HEADERS = nodo/nodo.h grafo/grafo.h camino/camino.h solverGreedy/solverGreedy.h algoritmos/algoritmo.h
 
-all: testGrafo testCamino testSolverGreedy
+all: testGrafo testCamino testSolverGreedy testAlgoritmo
 
-testGrafo: $(GRAFO_SRC) grafo/testGrafo.cpp nodo/nodo.hpp grafo/grafo.hpp
+testGrafo: $(GRAFO_SRC) grafo/testGrafo.cpp nodo/nodo.h grafo/grafo.h
 	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) grafo/testGrafo.cpp
 
-testCamino: $(GRAFO_SRC) $(CAMINO_SRC) camino/testCamino.cpp nodo/nodo.hpp grafo/grafo.hpp camino/camino.hpp
+testCamino: $(GRAFO_SRC) $(CAMINO_SRC) camino/testCamino.cpp nodo/nodo.h grafo/grafo.h camino/camino.h
 	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(CAMINO_SRC) camino/testCamino.cpp
 
 testSolverGreedy: $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) solverGreedy/testSolverGreedy.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) solverGreedy/testSolverGreedy.cpp
 
+testAlgoritmo: $(GRAFO_SRC) $(ALGORITMO_SRC) algoritmos/testAlgoritmo.cpp nodo/nodo.h grafo/grafo.h algoritmos/algoritmo.h
+	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(ALGORITMO_SRC) algoritmos/testAlgoritmo.cpp
+
 clean:
-	rm -f main testGrafo testCamino testSolverGreedy
+	rm -f main testGrafo testCamino testSolverGreedy testAlgoritmo

@@ -1,4 +1,4 @@
-#include "solverGreedy.hpp"
+#include "solverGreedy.h"
 
 using namespace std;
 
@@ -7,7 +7,7 @@ SolverGreedy::SolverGreedy() : grafo(nullptr) {}
 SolverGreedy::SolverGreedy(const Grafo& grafo) : grafo(&grafo) {}
 
 int SolverGreedy::obtenerMejorNodo(int nodoActual, int pesoDisponible, const Camino& sol){
-    int maxBeneficio = -1;
+    float maxBeneficio = -1.0f;
     int mejorNodoId = -1;
 
     vector<Nodo> vecinos = grafo->getVecinos(nodoActual);
@@ -15,8 +15,9 @@ int SolverGreedy::obtenerMejorNodo(int nodoActual, int pesoDisponible, const Cam
         if (sol.nodoFueVisitado(nodo.destino)) continue;
         if (nodo.costo > pesoDisponible) continue;
 
-        if (nodo.beneficio > maxBeneficio) {
-            maxBeneficio = nodo.beneficio;
+        float razon = (float)nodo.beneficio / nodo.costo;
+        if (razon > maxBeneficio) {
+            maxBeneficio = razon;
             mejorNodoId = nodo.destino;
         }
     }

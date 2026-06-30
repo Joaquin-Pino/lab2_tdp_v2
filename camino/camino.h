@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <unordered_set>
-#include "../grafo/grafo.hpp"
+#include "../grafo/grafo.h"
 
 class Camino {
 private:
