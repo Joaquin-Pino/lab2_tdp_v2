@@ -49,35 +49,35 @@ Camino Kopt::resolver(const Camino& inicial) {
 
     while (huboMejora) {
         huboMejora = false;
-        std::vector<int> caminoActual = mejorActual.getCamino();
+        vector<int> caminoActual = mejorActual.getCamino();
         int n = static_cast<int>(caminoActual.size());
 
         // punto 1: posiciones = INDICES 1..n-2, 
-        std::vector<int> posicionesIdx(n - 2);
-        std::iota(posicionesIdx.begin(), posicionesIdx.end(), 1); // genera la lista
+        vector<int> posicionesIdx(n - 2);
+        iota(posicionesIdx.begin(), posicionesIdx.end(), 1); // genera la lista
 
-        std::vector<std::vector<int>> combinaciones = Algoritmo::combinar(posicionesIdx, k);
+        vector<vector<int>> combinaciones = Algoritmo::combinar(posicionesIdx, k);
 
-        for (const std::vector<int>& combinacion : combinaciones) {
+        for (const vector<int>& combinacion : combinaciones) {
             if (huboMejora) break;
 
             // IDs de los nodos que hoy ocupan esas posiciones, en orden
-            std::vector<int> idsActuales;
+            vector<int> idsActuales;
             idsActuales.reserve(combinacion.size());
             for (int idx : combinacion) {
                 idsActuales.push_back(caminoActual[idx]);
             }
 
             // punto 2: permutar idsActuales
-            std::vector<std::vector<int>> permutaciones = Algoritmo::permutar(idsActuales, k);
+            vector<vector<int>> permutaciones = Algoritmo::permutar(idsActuales, k);
 
-            for (const std::vector<int>& permutacion : permutaciones) {
+            for (const vector<int>& permutacion : permutaciones) {
                 if (huboMejora) break;
 
                 // punto 5: continue, no break — solo saltar este orden, no cortar la busqueda
                 if (permutacion == idsActuales) continue;
 
-                std::vector<int> candidatoCamino = caminoActual;
+                vector<int> candidatoCamino = caminoActual;
                 for (size_t i = 0; i < combinacion.size(); ++i) {
                     candidatoCamino[combinacion[i]] = permutacion[i];
                 }
@@ -86,7 +86,6 @@ Camino Kopt::resolver(const Camino& inicial) {
                 // peso/beneficio o decidir aceptacion. Este for termina completo
                 // antes de seguir, no hay break prematuro mezclado con la aceptacion.
                 bool aristasValidas = verificarAristas(combinacion, candidatoCamino);
-                
                 if (!aristasValidas) continue; // descartar, siguiente permutacion
 
                 // Recien aqui, con aristas ya validadas, se recalcula UNA sola vez
@@ -115,30 +114,64 @@ Camino Kopt::resolver(const Camino& inicial) {
 // ===== K-OPT con perturbacion (reemplaza nodos por otros no visitados) =====
 
 Camino Kopt::perturbar(const Camino& inicial) {
-    // posicionesPeores = las k posiciones interiores de inicial con peor
-    // razon beneficio/costo (apoyarse en Camino::getRatioNodo)
+    vector<int> caminoActual = inicial.getCamino();
 
-    // candidatosNuevos = todos los nodos del grafo que no estan visitados en inicial
-    // si hay menos de k candidatos nuevos disponibles: devolver inicial sin cambios
-    // (no hay margen para perturbar)
+    int n = static_cast<int>(caminoActual.size());
 
-    // permutaciones = Algoritmo::permutar(candidatosNuevos, k)
+    vector<int> posicionesIdx(n-2);
+    iota(posicionesIdx.begin(), posicionesIdx.end(), 1);
 
-    // para cada permutacion:
-    //   candidato = inicial con los nodos de posicionesPeores reemplazados,
-    //   uno a uno y en el mismo orden, por los nodos de esta permutacion
-    //
-    //   validar que existan en el grafo todas las aristas afectadas por el
-    //   reemplazo (mismo chequeo de huecos que en resolver)
-    //   si falta alguna arista: descartar candidato, seguir con la siguiente permutacion
-    //
-    //   recalcular pesoTotal del candidato
-    //   si pesoTotal > maxW: descartar candidato, seguir con la siguiente permutacion
-    //
-    //   si llega aqui el candidato es factible: aplicarlo y devolverlo de inmediato
-    //   (no se exige beneficio mayor al de inicial: esta es la perturbacion,
-    //   se acepta aunque empeore el beneficio; es una sola pasada, no hay
-    //   loop "mientras no haya mejora")
+    // se eligen las posiciones de los nodos que vamos a sacar del camino
+    vector<vector<int>> combinaciones = Algoritmo::combinar(posicionesIdx, k);
 
-    // si ninguna permutacion resulto factible: devolver inicial sin cambios
+    for (const vector<int>& combinacion : combinaciones){
+
+        // IDs que hoy ocupan esas posiciones, para no aceptar un "reemplazo"
+        // que deja los mismos nodos en el mismo orden
+        vector<int> idsActuales;
+        idsActuales.reserve(combinacion.size());
+        for (int idx : combinacion) {
+            idsActuales.push_back(caminoActual[idx]);
+        }
+
+        // candidatos: vecinos de los nodos que se sacan EN ESTA combinacion,
+        // sin contar los que ya estan visitados en el camino
+        unordered_set<int> idVecinos;
+        for (int idx : combinacion){
+            for (const Nodo& vecino : grafo->getVecinos(caminoActual[idx])){
+                if (!inicial.nodoFueVisitado(vecino.destino)) {
+                    idVecinos.insert(vecino.destino);
+                }
+            }
+        }
+        vector<int> candidatosNuevos(idVecinos.begin(), idVecinos.end());
+
+        vector<vector<int>> permutaciones = Algoritmo::permutar(candidatosNuevos, k);
+
+        for (const vector<int>& permutacion : permutaciones){
+            if (permutacion == idsActuales) continue;
+
+            vector<int> nuevoCamino = caminoActual;
+            for (size_t i = 0; i < combinacion.size(); ++i) {
+                nuevoCamino[combinacion[i]] = permutacion[i];
+            }
+
+            bool aristasValidas = verificarAristas(combinacion, nuevoCamino);
+            if (!aristasValidas) continue; // seguimos con la siguiente permutacion
+
+            double pesoTotal = 0.0;
+            double beneficioTotal = 0.0;
+            for (int i = 0; i < n - 1; ++i) {
+                pesoTotal += grafo->getPeso(nuevoCamino[i], nuevoCamino[i + 1]);
+                beneficioTotal += grafo->getBeneficio(nuevoCamino[i], nuevoCamino[i + 1]);
+            }
+
+            if (pesoTotal > grafo->getMaxW()) continue; // descartar, sobrepasa W
+
+            // se acepta aunque empeore el beneficio: es el salto de Breakout
+            return Camino(nuevoCamino, *grafo);
+        }
+    }
+
+    return inicial; // si no se encontro nada, se retorna el inicial
 }

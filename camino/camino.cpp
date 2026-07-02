@@ -165,3 +165,15 @@ bool Camino::llegaFinal(){
 void Camino::concatenar(const vector<int> &c){
     camino.insert(camino.end(), c.begin(), c.end());
 }
+
+
+void Camino::setPesoTotal(int p){
+    pesoTotal = p;
+}
+void Camino::setCamino(std::vector<int> c){
+    camino = c;
+}
+
+void Camino::setBeneficio(int n){
+    beneficioTotal = n;
+}

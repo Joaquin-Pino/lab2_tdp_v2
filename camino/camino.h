@@ -46,4 +46,9 @@ public:
     bool llegaFinal();
 
     void concatenar(const std::vector<int> &c);
+
+    void setPesoTotal(int p);
+    void setCamino(std::vector<int> c);
+
+    void setBeneficio(int b);
 };

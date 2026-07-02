@@ -10,7 +10,9 @@ private:
     const Grafo* grafo;
     int k;
     
-    bool verificarAristas(const std::vector<int>& combinacion, const std::vector<int>& candidatoCamino);
+    bool verificarAristas(const std::vector<int>& combinacion, 
+                        const std::vector<int>& candidatoCamino);
+    
 public:
 
     Kopt();
