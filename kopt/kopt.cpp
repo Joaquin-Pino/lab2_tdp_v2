@@ -30,7 +30,19 @@ Camino Kopt::resolver() {
     // delegar en resolver(inicial) con ese camino ya completo
     
 }
+bool Kopt::verificarAristas(const vector<int>& combinacion, const vector<int>& candidatoCamino){
+    for (int idx : combinacion) {
+        int nodoPrev = candidatoCamino[idx - 1];
+        int nodoActual = candidatoCamino[idx];
+        int nodoSig = candidatoCamino[idx + 1];
 
+        if (!grafo->existeArista(nodoPrev, nodoActual) ||
+            !grafo->existeArista(nodoActual, nodoSig)) {
+            return false;
+        }
+    }
+    return true;
+}
 Camino Kopt::resolver(const Camino& inicial) {
     Camino mejorActual = inicial;
     bool huboMejora = true;
@@ -73,18 +85,8 @@ Camino Kopt::resolver(const Camino& inicial) {
                 // punto 4: validar TODAS las aristas afectadas ANTES de calcular
                 // peso/beneficio o decidir aceptacion. Este for termina completo
                 // antes de seguir, no hay break prematuro mezclado con la aceptacion.
-                bool aristasValidas = true;
-                for (int idx : combinacion) {
-                    int nodoPrev = candidatoCamino[idx - 1];
-                    int nodoActual = candidatoCamino[idx];
-                    int nodoSig = candidatoCamino[idx + 1];
-
-                    if (!grafo->existeArista(nodoPrev, nodoActual) ||
-                        !grafo->existeArista(nodoActual, nodoSig)) {
-                        aristasValidas = false;
-                        break;
-                    }
-                }
+                bool aristasValidas = verificarAristas(combinacion, candidatoCamino);
+                
                 if (!aristasValidas) continue; // descartar, siguiente permutacion
 
                 // Recien aqui, con aristas ya validadas, se recalcula UNA sola vez
