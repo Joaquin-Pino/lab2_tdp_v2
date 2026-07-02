@@ -172,3 +172,31 @@ bool Grafo::existeArista(int origen, int final) const {
 
     return false;
 }
+
+
+int Grafo::getIdNodoInicial() const{
+    return 0;
+}
+
+int Grafo::getIdNodoFinal() const{
+    return (int) listaAdy.size() - 1;
+}
+
+int Grafo::getPeso(int a, int b) const{
+    vector<Nodo> vecinos = listaAdy[a];
+    for (Nodo n : vecinos){
+        if (n.destino == b){
+            return n.costo;
+        }
+    }
+    throw runtime_error("no se encontro nodo en get peso");
+}
+int Grafo::getBeneficio(int a, int b) const{
+    vector<Nodo> vecinos = listaAdy[a];
+    for (Nodo n : vecinos){
+        if (n.destino == b){
+            return n.beneficio;
+        }
+    }
+    throw runtime_error("no se encontro nodo en get beneficio");
+}

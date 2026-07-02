@@ -32,4 +32,9 @@ public:
 
     bool existeArista(int origen, int destino) const;
 
+    int getIdNodoInicial() const;
+    int getIdNodoFinal() const;
+
+    int getPeso(int a, int b) const;
+    int getBeneficio(int a, int b) const;
 };

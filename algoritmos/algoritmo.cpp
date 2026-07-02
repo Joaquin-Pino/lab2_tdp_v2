@@ -28,20 +28,19 @@ void Algoritmo::combinarAux(const vector<int>& candidatos, int k, int i, vector<
     combinarAux(candidatos, k, i + 1, acum, resultado);
 }
 
-// se incluyen los huecos generados para hacer podas y no generar todas las permutaciones posibles
-vector<vector<int>> Algoritmo::permutar(const vector<int>& candidatos, const vector<pair<int,int>>& huecos, int k, const Grafo& grafo) {
+vector<vector<int>> Algoritmo::permutar(const vector<int>& candidatos, int k) {
     vector<vector<int>> res;
     vector<int> acum;
     vector<bool> usados(candidatos.size(), false);
+    if (k > (int)candidatos.size() || k < 0) return res;
 
-    permutarAux(candidatos, huecos, k, 0, usados, acum, res, grafo);
+    permutarAux(candidatos, k, usados, acum, res);
 
     return res;
 }
 
-void Algoritmo::permutarAux(const vector<int>& candidatos, const vector<pair<int,int>>& huecos, 
-                int k, int j, vector<bool>& usados, vector<int>& acum, 
-                vector<vector<int>>& resultado, const Grafo& grafo){
+void Algoritmo::permutarAux(const vector<int>& candidatos, int k, vector<bool>& usados,
+                vector<int>& acum, vector<vector<int>>& resultado){
 
     if((int) acum.size() == k){
         resultado.push_back(acum);
@@ -49,32 +48,16 @@ void Algoritmo::permutarAux(const vector<int>& candidatos, const vector<pair<int
     }
 
     for (int i = 0; i < (int)candidatos.size(); ++i) {
-        
+
         // Control básico de permutación: no usar el mismo elemento dos veces
-        if (usados[i]) continue; 
+        if (usados[i]) continue;
 
-        int in_j = candidatos[i];
+        acum.push_back(candidatos[i]);
+        usados[i] = true;
 
-        //  Verificación de la poda con el hueco j
-        // Hueco j tiene restricciones: huecos[j].first -> in_j -> huecos[j].second
-        int origen = huecos[j].first;
-        int destino = huecos[j].second;
-
-        // Si alguna de las aristas requeridas no existe, saltamos este candidato
-        if (!grafo.existeArista(origen, in_j) || !grafo.existeArista(in_j, destino)) {
-            continue;
-        }
-
-        acum.push_back(in_j);
-        usados[i] = true; // Marcar como usado
-
-        // Avanzamos al siguiente hueco (j + 1)
-        permutarAux(candidatos, huecos, k, j + 1, usados, acum, resultado, grafo);
+        permutarAux(candidatos, k, usados, acum, resultado);
 
         usados[i] = false;
-        acum.pop_back();  
+        acum.pop_back();
     }
-
-    
-
 }

@@ -6,7 +6,7 @@ CAMINO_SRC        = camino/camino.cpp
 SOLVER_GREEDY_SRC = solverGreedy/solverGreedy.cpp
 ALGORITMO_SRC     = algoritmos/algoritmo.cpp
 
-HEADERS = nodo/nodo.h grafo/grafo.h camino/camino.h solverGreedy/solverGreedy.h algoritmos/algoritmo.h
+HEADERS = nodo/nodo.h grafo/grafo.h camino/camino.h solverGreedy/solverGreedy.h
 
 all: testGrafo testCamino testSolverGreedy testAlgoritmo
 
@@ -19,8 +19,8 @@ testCamino: $(GRAFO_SRC) $(CAMINO_SRC) camino/testCamino.cpp nodo/nodo.h grafo/g
 testSolverGreedy: $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) solverGreedy/testSolverGreedy.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) solverGreedy/testSolverGreedy.cpp
 
-testAlgoritmo: $(GRAFO_SRC) $(ALGORITMO_SRC) algoritmos/testAlgoritmo.cpp nodo/nodo.h grafo/grafo.h algoritmos/algoritmo.h
-	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(ALGORITMO_SRC) algoritmos/testAlgoritmo.cpp
+testAlgoritmo: $(ALGORITMO_SRC) algoritmos/testAlgoritmo.cpp algoritmos/algoritmo.h
+	$(CXX) $(CXXFLAGS) -o $@ $(ALGORITMO_SRC) algoritmos/testAlgoritmo.cpp
 
 clean:
 	rm -f main testGrafo testCamino testSolverGreedy testAlgoritmo

@@ -42,4 +42,8 @@ public:
     std::vector<int> getCamino() const;
 
     int getPosicionNodo(int idNodo);
+
+    bool llegaFinal();
+
+    void concatenar(const std::vector<int> &c);
 };

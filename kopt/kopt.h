@@ -1,0 +1,38 @@
+#pragma once
+
+#include "../grafo/grafo.h"
+#include "../camino/camino.h"
+#include "../algoritmos/algoritmo.h"
+#include "../solverGreedy/solverGreedy.h"
+
+class Kopt {
+private:
+    const Grafo* grafo;
+    int k;
+
+public:
+
+    Kopt();
+    Kopt(const Grafo& grafo, int k);
+    // no es necesario el de copia, no hay asignacion dinaimica de memoria
+
+    // K-OPT convencional: genera una solucion inicial con el goloso y la
+    // mejora reordenando k nodos ya presentes en el camino (generalizacion
+    // de 2-OPT). Busca hasta convergencia: termina cuando ninguna
+    // combinacion/permutacion de k nodos mejora el beneficio.
+    Camino resolver();
+
+    // Igual que resolver(), pero partiendo de un camino ya construido en
+    // vez de llamar al goloso. Pensado para refinar el camino que entrega
+    // perturbar() (o cualquier otro camino factible), por ejemplo dentro
+    // de Breakout despues de un salto.
+    Camino resolver(const Camino& inicial);
+
+    // K-OPT con perturbacion: reemplaza los k nodos de peor razon
+    // beneficio/costo del camino por k nodos no visitados del grafo.
+    // A diferencia de resolver(), el resultado se acepta sin exigir
+    // mejora del beneficio: es el "salto grande" que usa Breakout Search
+    // para escapar de optimos locales, aceptando que empeore.
+    Camino perturbar(const Camino& inicial);
+
+};

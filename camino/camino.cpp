@@ -154,3 +154,14 @@ int Camino::getPosicionNodo(int idNodo){
 
     return -1;
 }
+
+bool Camino::llegaFinal(){
+    if (camino.back() == grafo->getIdNodoFinal()) {
+        return true;
+    }
+    return false;
+}
+
+void Camino::concatenar(const vector<int> &c){
+    camino.insert(camino.end(), c.begin(), c.end());
+}
