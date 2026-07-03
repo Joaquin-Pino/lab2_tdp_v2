@@ -163,7 +163,11 @@ bool Camino::llegaFinal(){
 }
 
 void Camino::concatenar(const vector<int> &c){
-    camino.insert(camino.end(), c.begin(), c.end());
+    // dijkstraCamino(origen, destino) devuelve [origen, ..., destino], y
+    // origen suele ser el ultimo nodo ya presente en el camino (p.ej. al
+    // completar el camino del goloso). agregarNodo ignora ese nodo repetido
+    // y va sumando peso/beneficio y marcando visitados para el resto.
+    for (int id : c) agregarNodo(id);
 }
 
 

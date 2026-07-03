@@ -133,10 +133,12 @@ Grafo crearGrafoConMejoraK3() {
 
 void test_resolverInicialMejoraConK3() {
     Grafo g = crearGrafoConMejoraK3();
-    Kopt kopt(g, 3);
+    Kopt kopt(g);
     Camino inicial(std::vector<int>{0, 1, 2, 3, 4, 5}, g);
 
-    Camino resultado = kopt.resolver(inicial);
+    // k=3 explicito: el constructor no fija un k por defecto (su 2do
+    // argumento es la semilla del RNG, usada solo por granSalto/perturbar).
+    Camino resultado = kopt.resolver(inicial, true, 3);
 
     assert((resultado.getCamino() == std::vector<int>{0, 3, 1, 2, 4, 5}));
     assert(resultado.getPesoTotal() == 5);

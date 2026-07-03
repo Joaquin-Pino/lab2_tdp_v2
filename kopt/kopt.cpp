@@ -3,15 +3,18 @@
 #include "../algoritmos/algoritmo.h"
 #include <vector>
 #include <numeric>
+#include <algorithm>
 
 using namespace std;
 
-Kopt::Kopt(): grafo(nullptr), k(0) {}
+Kopt::Kopt(): grafo(nullptr), rng(std::random_device{}()) {}
 
-Kopt::Kopt(const Grafo& grafo, int k): grafo(&grafo), k(k) {}
+Kopt::Kopt(const Grafo& grafo): grafo(&grafo), rng(std::random_device{}()) {}
 
+Kopt::Kopt(const Grafo& grafo,  unsigned int semilla): grafo(&grafo),  rng(semilla) {} // para debug
 
-Camino Kopt::resolver(bool primeraMejora) {
+// wrapper para resolver(iniciaL, primeraMejora)
+Camino Kopt::resolver(bool primeraMejora, int k) {
     // construir solucion inicial con SolverGreedy
     SolverGreedy SolverGreedy(*grafo);
     // si el camino entregado por greedy no es completo (no llega al destino),
@@ -24,7 +27,7 @@ Camino Kopt::resolver(bool primeraMejora) {
     }
     // hasta el destino); si tampoco asi se puede completar, no hay solucion
     // factible que mejorar
-    return resolver(inicial, primeraMejora);
+    return resolver(inicial, primeraMejora, k);
     // delegar en resolver(inicial, primeraMejora) con ese camino ya completo
 
 }
@@ -41,7 +44,7 @@ bool Kopt::verificarAristas(const vector<int>& combinacion, const vector<int>& c
     }
     return true;
 }
-Camino Kopt::resolver(const Camino& inicial, bool primeraMejora) {
+Camino Kopt::resolver(const Camino& inicial, bool primeraMejora, int k) {
     Camino mejorActual = inicial;
     bool huboMejora = true;
 
@@ -128,10 +131,56 @@ Camino Kopt::resolver(const Camino& inicial, bool primeraMejora) {
     return mejorActual;
 }
 
+Camino Kopt::granSalto(const Camino& inicial, int kSalto) {
+    vector<int> caminoActual = inicial.getCamino();
+    int n = static_cast<int>(caminoActual.size());
+
+    vector<int> posicionesIdx(n - 2);
+    iota(posicionesIdx.begin(), posicionesIdx.end(), 1);
+
+    // Se baraja el orden de las posiciones disponibles para no sesgar
+    // siempre hacia las mismas primeras posiciones del vector.
+    // (requiere <algorithm> para shuffle, y un generador de números aleatorios)
+    shuffle(posicionesIdx.begin(), posicionesIdx.end(), rng);
+
+    // Se toman kSalto posiciones al azar (las primeras del vector ya mezclado)
+    vector<int> combinacion(posicionesIdx.begin(),
+                             posicionesIdx.begin() + min(kSalto, (int)posicionesIdx.size()));
+    sort(combinacion.begin(), combinacion.end()); // mantener orden ascendente de índices
+
+    vector<int> idsActuales;
+    for (int idx : combinacion) idsActuales.push_back(caminoActual[idx]);
+
+    // Se genera UNA sola permutación aleatoria de esos nodos (no todas las k! posibles)
+    vector<int> permutacionAleatoria = idsActuales;
+    shuffle(permutacionAleatoria.begin(), permutacionAleatoria.end(), rng);
+
+    vector<int> candidatoCamino = caminoActual;
+    for (size_t i = 0; i < combinacion.size(); ++i) {
+        candidatoCamino[combinacion[i]] = permutacionAleatoria[i];
+    }
+
+    // Se valida factibilidad, pero NO se exige mejora de beneficio
+    if (!verificarAristas(combinacion, candidatoCamino)) {
+        return inicial; // el salto propuesto no es factible en aristas, se descarta
+    }
+
+    double pesoTotal = 0.0;
+    for (int i = 0; i < n - 1; ++i) {
+        pesoTotal += grafo->getPeso(candidatoCamino[i], candidatoCamino[i + 1]);
+    }
+    if (pesoTotal > grafo->getMaxW()) {
+        return inicial; // excede peso máximo, se descarta el salto
+    }
+
+    return Camino(candidatoCamino, *grafo);
+}
+
+
 
 // ===== K-OPT con perturbacion (reemplaza nodos por otros no visitados) =====
 
-Camino Kopt::perturbar(const Camino& inicial) {
+Camino Kopt::perturbar(const Camino& inicial, int k) {
     vector<int> caminoActual = inicial.getCamino();
 
     int n = static_cast<int>(caminoActual.size());

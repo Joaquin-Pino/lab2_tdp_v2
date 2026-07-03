@@ -1,5 +1,7 @@
 #pragma once
 
+#include <random>
+
 #include "../grafo/grafo.h"
 #include "../camino/camino.h"
 #include "../algoritmos/algoritmo.h"
@@ -8,15 +10,17 @@
 class Kopt {
 private:
     const Grafo* grafo;
-    int k;
     
     bool verificarAristas(const std::vector<int>& combinacion, 
                         const std::vector<int>& candidatoCamino);
+
+    std::mt19937 rng;
     
 public:
 
     Kopt();
-    Kopt(const Grafo& grafo, int k);
+    Kopt(const Grafo& grafo);
+    Kopt(const Grafo& grafo, unsigned int semilla); // para debug
     // no es necesario el de copia, no hay asignacion dinaimica de memoria
 
     // K-OPT convencional: genera una solucion inicial con el goloso y la
@@ -27,19 +31,21 @@ public:
     // candidato factible que mejore y reinicia la pasada.
     // primeraMejora = false (best-improvement / steepest descent): evalua
     // toda la vecindad de la pasada y aplica solo el mejor candidato.
-    Camino resolver(bool primeraMejora = true);
+    Camino resolver(bool primeraMejora = true, int k = 2);
 
     // Igual que resolver(), pero partiendo de un camino ya construido en
     // vez de llamar al goloso. Pensado para refinar el camino que entrega
     // perturbar() (o cualquier otro camino factible), por ejemplo dentro
     // de Breakout despues de un salto.
-    Camino resolver(const Camino& inicial, bool primeraMejora = true);
+    Camino resolver(const Camino& inicial, bool primeraMejora = true, int k = 2);
 
     // K-OPT con perturbacion: reemplaza los k nodos de peor razon
     // beneficio/costo del camino por k nodos no visitados del grafo.
     // A diferencia de resolver(), el resultado se acepta sin exigir
     // mejora del beneficio: es el "salto grande" que usa Breakout Search
     // para escapar de optimos locales, aceptando que empeore.
-    Camino perturbar(const Camino& inicial);
+    Camino perturbar(const Camino& inicial, int k);
+
+    Camino granSalto(const Camino& inicial, int kSalto);
 
 };

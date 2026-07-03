@@ -131,6 +131,25 @@ void test_intercambiarNodos() {
     std::cout << "test_intercambiarNodos: OK\n";
 }
 
+void test_concatenar() {
+    // simula el uso real: dijkstraCamino(origen, destino) devuelve
+    // [origen, ..., destino], donde origen es el ultimo nodo ya presente
+    // en el camino (p.ej. al completar el camino del goloso).
+    Grafo g = crearGrafo();
+    Camino c(std::vector<int>{}, g);
+    c.agregarNodo(0);
+    c.agregarNodo(1);
+    // pesoTotal=2, beneficioTotal=3
+
+    c.concatenar(std::vector<int>{1, 3}); // 1 ya esta en el camino
+
+    assert((c.getCamino() == std::vector<int>{0, 1, 3})); // sin duplicar el 1
+    assert(c.getPesoTotal() == 5); // 2 + arista(1->3)=3
+    assert(c.getBeneficioTotal() == 8); // 3 + arista(1->3)=5
+    assert(c.nodoFueVisitado(3));
+    std::cout << "test_concatenar: OK\n";
+}
+
 void test_copiaCamino() {
     Grafo g = crearGrafo();
     Camino c1(std::vector<int>{}, g);
@@ -154,6 +173,7 @@ int main() {
     test_verificarCamino();
     test_getUltimoNodo();
     test_intercambiarNodos();
+    test_concatenar();
     test_copiaCamino();
     std::cout << "--- Todos los tests de Camino pasaron ---\n";
     return 0;
