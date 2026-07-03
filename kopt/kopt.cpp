@@ -11,9 +11,7 @@ Kopt::Kopt(): grafo(nullptr), k(0) {}
 Kopt::Kopt(const Grafo& grafo, int k): grafo(&grafo), k(k) {}
 
 
-// ===== K-OPT convencional (reordena nodos ya presentes en el camino) =====
-
-Camino Kopt::resolver() {
+Camino Kopt::resolver(bool primeraMejora) {
     // construir solucion inicial con SolverGreedy
     SolverGreedy SolverGreedy(*grafo);
     // si el camino entregado por greedy no es completo (no llega al destino),
@@ -26,9 +24,9 @@ Camino Kopt::resolver() {
     }
     // hasta el destino); si tampoco asi se puede completar, no hay solucion
     // factible que mejorar
-    return resolver(inicial);
-    // delegar en resolver(inicial) con ese camino ya completo
-    
+    return resolver(inicial, primeraMejora);
+    // delegar en resolver(inicial, primeraMejora) con ese camino ya completo
+
 }
 bool Kopt::verificarAristas(const vector<int>& combinacion, const vector<int>& candidatoCamino){
     for (int idx : combinacion) {
@@ -43,7 +41,7 @@ bool Kopt::verificarAristas(const vector<int>& combinacion, const vector<int>& c
     }
     return true;
 }
-Camino Kopt::resolver(const Camino& inicial) {
+Camino Kopt::resolver(const Camino& inicial, bool primeraMejora) {
     Camino mejorActual = inicial;
     bool huboMejora = true;
 
@@ -52,14 +50,19 @@ Camino Kopt::resolver(const Camino& inicial) {
         vector<int> caminoActual = mejorActual.getCamino();
         int n = static_cast<int>(caminoActual.size());
 
-        // punto 1: posiciones = INDICES 1..n-2, 
+        // mejor candidato de ESTA pasada (solo se usa en modo steepest descent)
+        vector<int> mejorCandidatoPasada;
+        double mejorBeneficioPasada = mejorActual.getBeneficioTotal();
+        bool huboCandidatoPasada = false;
+
+        // punto 1: posiciones = INDICES 1..n-2,
         vector<int> posicionesIdx(n - 2);
         iota(posicionesIdx.begin(), posicionesIdx.end(), 1); // genera la lista
 
         vector<vector<int>> combinaciones = Algoritmo::combinar(posicionesIdx, k);
 
         for (const vector<int>& combinacion : combinaciones) {
-            if (huboMejora) break;
+            if (primeraMejora && huboMejora) break;
 
             // IDs de los nodos que hoy ocupan esas posiciones, en orden
             vector<int> idsActuales;
@@ -72,7 +75,7 @@ Camino Kopt::resolver(const Camino& inicial) {
             vector<vector<int>> permutaciones = Algoritmo::permutar(idsActuales, k);
 
             for (const vector<int>& permutacion : permutaciones) {
-                if (huboMejora) break;
+                if (primeraMejora && huboMejora) break;
 
                 // punto 5: continue, no break — solo saltar este orden, no cortar la busqueda
                 if (permutacion == idsActuales) continue;
@@ -99,15 +102,30 @@ Camino Kopt::resolver(const Camino& inicial) {
                 if (pesoTotal > grafo->getMaxW()) continue; // descartar, sobrepasa W
 
                 if (beneficioTotal > mejorActual.getBeneficioTotal()) {
-                    mejorActual = Camino(candidatoCamino, *grafo);
-                    huboMejora = true;
-                    break; // corta el for de permutaciones
+                    if (primeraMejora) {
+                        // first-improvement: se aplica de inmediato y se corta la pasada
+                        mejorActual = Camino(candidatoCamino, *grafo);
+                        huboMejora = true;
+                        break; // corta el for de permutaciones
+                    } else if (beneficioTotal > mejorBeneficioPasada) {
+                        // steepest descent: solo se guarda si es mejor que lo visto
+                        // hasta ahora EN ESTA PASADA; se aplica recien al terminar
+                        // de recorrer toda la vecindad
+                        mejorCandidatoPasada = candidatoCamino;
+                        mejorBeneficioPasada = beneficioTotal;
+                        huboCandidatoPasada = true;
+                    }
                 }
             }
         }
+
+        if (!primeraMejora && huboCandidatoPasada) {
+            mejorActual = Camino(mejorCandidatoPasada, *grafo);
+            huboMejora = true;
+        }
     }
 
-    return mejorActual; // punto 3: faltaba el return
+    return mejorActual;
 }
 
 
@@ -168,7 +186,7 @@ Camino Kopt::perturbar(const Camino& inicial) {
 
             if (pesoTotal > grafo->getMaxW()) continue; // descartar, sobrepasa W
 
-            // se acepta aunque empeore el beneficio: es el salto de Breakout
+            // se acepta aunque empeore el beneficio
             return Camino(nuevoCamino, *grafo);
         }
     }
