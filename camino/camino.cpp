@@ -11,6 +11,14 @@ Camino::Camino(vector<int> camino, const Grafo& grafo) :  pesoTotal(0), benefici
     calcularYAsignarPesoYBeneficio();
 }
 
+bool Camino::operator<(const Camino& otro) const {
+    return this->getBeneficioTotal() < otro.getBeneficioTotal();
+}
+
+bool Camino::operator>(const Camino& otro) const {
+    return this->getBeneficioTotal() > otro.getBeneficioTotal();
+}
+
 void Camino::agregarNodo(int id){
     if (visitados.count(id)) return;
     visitados.insert(id);
@@ -102,7 +110,7 @@ vector<int> Camino::getCamino() const{
     return camino;
 }
 
-int Camino::getBeneficioTotal(){
+int Camino::getBeneficioTotal() const {
     return beneficioTotal;
 }
 

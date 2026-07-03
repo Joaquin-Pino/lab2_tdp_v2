@@ -10,7 +10,10 @@ BREAKOUT_SRC      = breakout/breakout.cpp
 
 HEADERS = nodo/nodo.h grafo/grafo.h camino/camino.h solverGreedy/solverGreedy.h
 
-all: testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout
+all: main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout
+
+main: $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(BREAKOUT_SRC) main.cpp $(HEADERS) algoritmos/algoritmo.h kopt/kopt.h breakout/breakout.h
+	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(BREAKOUT_SRC) main.cpp
 
 testGrafo: $(GRAFO_SRC) grafo/testGrafo.cpp nodo/nodo.h grafo/grafo.h
 	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) grafo/testGrafo.cpp

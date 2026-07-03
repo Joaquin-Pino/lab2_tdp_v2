@@ -18,9 +18,13 @@ private:
 public:
     Camino();
     Camino(std::vector<int> camino, const Grafo& grafo);
+    // operator<: compara por beneficio total. c1 < c2 significa que c1 tiene
+    // MENOR beneficio (es decir, PEOR solución)
+    bool operator<(const Camino& otro) const;
+    bool operator>(const Camino& otro) const;
 
     int getPesoTotal();
-    int getBeneficioTotal();
+    int getBeneficioTotal() const;
 
     int getLargo();
 
