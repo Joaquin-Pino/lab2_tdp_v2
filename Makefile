@@ -7,10 +7,11 @@ SOLVER_GREEDY_SRC = solverGreedy/solverGreedy.cpp
 ALGORITMO_SRC     = algoritmos/algoritmo.cpp
 KOPT_SRC          = kopt/kopt.cpp
 BREAKOUT_SRC      = breakout/breakout.cpp
+SCATTER_SRC       = scatter/scatter.cpp
 
 HEADERS = nodo/nodo.h grafo/grafo.h camino/camino.h solverGreedy/solverGreedy.h
 
-all: main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout
+all: main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout testScatter
 
 main: $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(BREAKOUT_SRC) main.cpp $(HEADERS) algoritmos/algoritmo.h kopt/kopt.h breakout/breakout.h
 	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(BREAKOUT_SRC) main.cpp
@@ -33,5 +34,8 @@ testKopt: $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOP
 testBreakout: $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(BREAKOUT_SRC) breakout/testBreakout.cpp $(HEADERS) algoritmos/algoritmo.h kopt/kopt.h breakout/breakout.h
 	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(BREAKOUT_SRC) breakout/testBreakout.cpp
 
+testScatter: $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(SCATTER_SRC) scatter/testScatter.cpp $(HEADERS) algoritmos/algoritmo.h kopt/kopt.h scatter/scatter.h
+	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(SCATTER_SRC) scatter/testScatter.cpp
+
 clean:
-	rm -f main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout
+	rm -f main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout testScatter
