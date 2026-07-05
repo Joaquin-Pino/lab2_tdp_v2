@@ -29,17 +29,23 @@ size_t Scatter::ParHash::operator()(const pair<vector<int>, vector<int>>& par) c
 Camino Scatter::resolver(int maxIter) {
     Kopt koptSolver(*grafo);
     const int TAM_REFSET = 10;
+    const int N_GEN = 30;                  // se generan pocas soluciones...
+    const int N_REFINAR = 2 * TAM_REFSET;  // ...y se refina solo el mejor tramo
 
-    vector<Camino> soluciones = generarSoluciones(100);
+    vector<Camino> soluciones = generarSoluciones(N_GEN);
 
-    for (Camino& c : soluciones) {
-        c = koptSolver.resolver(c, false, 2);
-    }
-
+    // Ordenar por beneficio CRUDO y refinar con 2-OPT (first-improvement) solo
+    // las N_REFINAR mejores, no las N_GEN: refinar es lo caro. Se refina el
+    // doble del refSet como colchon, porque una solucion mediocre en crudo
+    // puede escalar al refinarla.
     sort(soluciones.begin(), soluciones.end(), greater<Camino>());
+    size_t lim = min((size_t)N_REFINAR, soluciones.size());
+    for (size_t i = 0; i < lim; ++i) {
+        soluciones[i] = koptSolver.resolver(soluciones[i], true, 2);
+    }
+    sort(soluciones.begin(), soluciones.begin() + lim, greater<Camino>());
 
-    // solo por calidad, sin componente de diversidad, 
-    //obtenemos los 10 mejores o la lista completa si hay menos de 10 soluciones
+    // obtenemos los 10 mejores (ya refinados) o la lista completa si hay menos
     vector<Camino> refSet(soluciones.begin(),
                            soluciones.begin() + min((size_t)TAM_REFSET, soluciones.size()));
 
@@ -66,7 +72,7 @@ Camino Scatter::resolver(int maxIter) {
 
             vector<Camino> nuevas = generarSoluciones(TAM_REFSET - 1);
             for (Camino& c : nuevas) {
-                c = koptSolver.resolver(c, false, 2);
+                c = koptSolver.resolver(c, true, 2);
             }
 
             refSet.clear();
@@ -79,7 +85,7 @@ Camino Scatter::resolver(int maxIter) {
             vector<Camino> pool;
             for (auto& par : pares) {
                 Camino nuevo = combinar(par.first, par.second);
-                nuevo = koptSolver.resolver(nuevo, false, 2);
+                nuevo = koptSolver.resolver(nuevo, true, 2);
                 pool.push_back(nuevo);
                 usados.insert(clavePar(par.first, par.second));
             }
@@ -178,12 +184,27 @@ Camino Scatter::construccionAleatoria() {
         pesoActual += grafo->getPeso(camino[i], camino[i + 1]);
     }
 
-    while (true) {
+    // Largo objetivo aleatorio: da diversidad de tamanos entre soluciones y
+    // evita construir caminos de casi N nodos (que hacen carisimo al 2-OPT
+    // posterior, cuya vecindad crece cuadraticamente con el largo).
+    uniform_int_distribution<int> distLargo((int)camino.size(), grafo->getCantVert());
+    int largoObjetivo = distLargo(rng);
+
+    const double ALPHA = 0.3; // fraccion superior de candidatos que forma la RCL
+
+    while ((int)camino.size() < largoObjetivo) {
         vector<CandidatoInsercion> candidatos = generarCandidatos(camino, pesoActual);
         if (candidatos.empty()) break;
 
-        // Sin filtro de calidad: se elige uniformemente entre TODOS los factibles
-        uniform_int_distribution<size_t> distIdx(0, candidatos.size() - 1);
+        // RCL (estilo GRASP): se ordena por eficiencia (beneficio/peso) y se
+        // elige al azar dentro del tramo superior. Mezcla intensificacion
+        // (candidatos buenos) con diversificacion (eleccion aleatoria).
+        sort(candidatos.begin(), candidatos.end(),
+             [](const CandidatoInsercion& a, const CandidatoInsercion& b) {
+                 return a.eficiencia > b.eficiencia;
+             });
+        size_t tamRcl = max((size_t)1, (size_t)(ALPHA * candidatos.size()));
+        uniform_int_distribution<size_t> distIdx(0, tamRcl - 1);
         const CandidatoInsercion& elegido = candidatos[distIdx(rng)];
 
         camino.insert(camino.begin() + elegido.posicion + 1, elegido.nodo);
@@ -232,7 +253,6 @@ vector<Scatter::CandidatoInsercion> Scatter::generarCandidatos(const vector<int>
     }
     return candidatos;
 }
-
 
  vector<Camino> Scatter::generarSoluciones(int n){
     return generarSolucionesAleatorias(n);

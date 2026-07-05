@@ -11,6 +11,7 @@
 #include "solverGreedy/solverGreedy.h"
 #include "kopt/kopt.h"
 #include "breakout/breakout.h"
+#include "scatter/scatter.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -82,6 +83,14 @@ private:
         imprimirResultado("Breakout", solucion, ms);
     }
 
+    void ejecutarScatter(){
+        Scatter scatterSolver(*grafo);
+        auto inicio = high_resolution_clock::now();
+        Camino solucion = scatterSolver.resolver(5);
+        auto fin = high_resolution_clock::now();
+        double ms = duration<double, milli>(fin - inicio).count();
+        imprimirResultado("scatter", solucion, ms);
+    }
     void seleccionarAlgoritmo() {
         if (!hayGrafoCargado()) return;
 
@@ -103,7 +112,7 @@ private:
                 ejecutarBreakout();
                 break;
             case 3:
-                cout << "Scatter aun no esta implementado.\n";
+                ejecutarScatter();
                 break;
             case 4:
                 cout << "Branch and Bound aun no esta implementado.\n";

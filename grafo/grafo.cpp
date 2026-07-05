@@ -10,7 +10,7 @@ using namespace std;
 
 Grafo::Grafo(int cantVert, int cantArist, int maxW)
     : cantVert(cantVert), cantArist(cantArist), maxW(maxW),
-      listaAdy(cantVert) {}
+      listaAdy(cantVert), ady(cantVert) {}
 
 Grafo Grafo::cargarDesdeArchivo(const string& filename) {
     ifstream file(filename);
@@ -32,9 +32,12 @@ Grafo Grafo::cargarDesdeArchivo(const string& filename) {
 
 void Grafo::insertarArista(int origen, int destino, int costo, int beneficio) {
     listaAdy[origen].push_back({destino, costo, beneficio});
+    // emplace conserva la PRIMERA arista si hubiese duplicados origen->destino,
+    // igual que el scan lineal original sobre listaAdy.
+    ady[origen].emplace(destino, Nodo{destino, costo, beneficio});
 }
 
-vector<Nodo> Grafo::getVecinos(int idNodo) const {
+const vector<Nodo>& Grafo::getVecinos(int idNodo) const {
     return listaAdy[idNodo];
 }
 
@@ -146,15 +149,9 @@ float Grafo::getRatioMejorEntrada(int id) const {
 }
 
 Nodo Grafo::getArista(int a, int b) const{
-    // retorna {costo, beneficio}, {0,0} en caso de que no exista arista
-    vector<Nodo> vecinos = getVecinos(a);
-    Nodo nodo;
-    for (const Nodo& n : vecinos){
-        if (n.destino == b){
-            nodo = n;
-            return nodo;
-        }
-    }
+    // consulta O(1) sobre el indice ady
+    auto it = ady[a].find(b);
+    if (it != ady[a].end()) return it->second;
     // tiramos error ya que no se pueden devolver referencias nulas
     ostringstream msg;
     msg << "no se encontro arista desde " << a << " hasta "<< b << " error en metodo getArista";
@@ -162,15 +159,7 @@ Nodo Grafo::getArista(int a, int b) const{
 }
 
 bool Grafo::existeArista(int origen, int final) const {
-    vector<Nodo> vecinos = getVecinos(origen);
-
-    for (const Nodo& n : vecinos){
-        if (n.destino == final){
-            return true;
-        }
-    }
-
-    return false;
+    return ady[origen].count(final) > 0;
 }
 
 
@@ -183,20 +172,12 @@ int Grafo::getIdNodoFinal() const{
 }
 
 int Grafo::getPeso(int a, int b) const{
-    vector<Nodo> vecinos = listaAdy[a];
-    for (Nodo n : vecinos){
-        if (n.destino == b){
-            return n.costo;
-        }
-    }
+    auto it = ady[a].find(b);
+    if (it != ady[a].end()) return it->second.costo;
     throw runtime_error("no se encontro nodo en get peso");
 }
 int Grafo::getBeneficio(int a, int b) const{
-    vector<Nodo> vecinos = listaAdy[a];
-    for (Nodo n : vecinos){
-        if (n.destino == b){
-            return n.beneficio;
-        }
-    }
+    auto it = ady[a].find(b);
+    if (it != ady[a].end()) return it->second.beneficio;
     throw runtime_error("no se encontro nodo en get beneficio");
 }

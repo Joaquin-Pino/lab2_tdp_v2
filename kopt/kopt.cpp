@@ -4,6 +4,7 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
+#include <set>
 
 using namespace std;
 
@@ -58,6 +59,11 @@ Camino Kopt::resolver(const Camino& inicial, bool primeraMejora, int k) {
         double mejorBeneficioPasada = mejorActual.getBeneficioTotal();
         bool huboCandidatoPasada = false;
 
+        // totales base del camino de esta pasada; los candidatos se evaluan
+        // por DELTA sobre estos, sin recorrer el camino completo cada vez
+        double pesoBase = mejorActual.getPesoTotal();
+        double benefBase = mejorActual.getBeneficioTotal();
+
         // punto 1: posiciones = INDICES 1..n-2,
         vector<int> posicionesIdx(n - 2);
         iota(posicionesIdx.begin(), posicionesIdx.end(), 1); // genera la lista
@@ -72,6 +78,22 @@ Camino Kopt::resolver(const Camino& inicial, bool primeraMejora, int k) {
             idsActuales.reserve(combinacion.size());
             for (int idx : combinacion) {
                 idsActuales.push_back(caminoActual[idx]);
+            }
+
+            // aristas afectadas por reordenar estas posiciones: para cada
+            // posicion idx cambian las aristas (idx-1,idx) y (idx,idx+1),
+            // identificadas por su extremo izquierdo. Se deduplican (posiciones
+            // contiguas comparten arista). Dependen solo de la combinacion, no
+            // de la permutacion, asi que se calculan una vez por combinacion.
+            set<int> afectados;
+            for (int idx : combinacion) {
+                afectados.insert(idx - 1);
+                afectados.insert(idx);
+            }
+            double oldPeso = 0.0, oldBenef = 0.0;
+            for (int L : afectados) {
+                oldPeso  += grafo->getPeso(caminoActual[L], caminoActual[L + 1]);
+                oldBenef += grafo->getBeneficio(caminoActual[L], caminoActual[L + 1]);
             }
 
             // punto 2: permutar idsActuales
@@ -94,13 +116,15 @@ Camino Kopt::resolver(const Camino& inicial, bool primeraMejora, int k) {
                 bool aristasValidas = verificarAristas(combinacion, candidatoCamino);
                 if (!aristasValidas) continue; // descartar, siguiente permutacion
 
-                // Recien aqui, con aristas ya validadas, se recalcula UNA sola vez
-                double pesoTotal = 0.0;
-                double beneficioTotal = 0.0;
-                for (int i = 0; i < n - 1; ++i) {
-                    pesoTotal += grafo->getPeso(candidatoCamino[i], candidatoCamino[i + 1]);
-                    beneficioTotal += grafo->getBeneficio(candidatoCamino[i], candidatoCamino[i + 1]);
+                // Recien aqui, con aristas ya validadas, se evalua por DELTA:
+                // solo las aristas afectadas cambian respecto del camino base.
+                double newPeso = 0.0, newBenef = 0.0;
+                for (int L : afectados) {
+                    newPeso  += grafo->getPeso(candidatoCamino[L], candidatoCamino[L + 1]);
+                    newBenef += grafo->getBeneficio(candidatoCamino[L], candidatoCamino[L + 1]);
                 }
+                double pesoTotal = pesoBase + (newPeso - oldPeso);
+                double beneficioTotal = benefBase + (newBenef - oldBenef);
 
                 if (pesoTotal > grafo->getMaxW()) continue; // descartar, sobrepasa W
 

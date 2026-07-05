@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include "../nodo/nodo.h"
 
 class Grafo {
@@ -9,7 +10,10 @@ private:
     int cantArist;
     int maxW;
     std::vector<std::vector<Nodo>> listaAdy;
-    
+    // Indice paralelo origen -> (destino -> Nodo) para consultas de arista O(1)
+    // (getPeso/getBeneficio/existeArista/getArista). Se llena junto con listaAdy.
+    std::vector<std::unordered_map<int, Nodo>> ady;
+
 public:
     Grafo(int cantVert, int cantArist, int maxW);
 
@@ -17,7 +21,7 @@ public:
 
     void insertarArista(int origen, int destino, int costo, int beneficio);
 
-    std::vector<Nodo> getVecinos(int idNodo) const;
+    const std::vector<Nodo>& getVecinos(int idNodo) const;
     int getCantVert() const;
     int getMaxW() const;
     int getNodoDestino() const;

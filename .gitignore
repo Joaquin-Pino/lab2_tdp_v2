@@ -1,5 +1,6 @@
 *.md
 .idea
+*.txt
 testCamino
 testGrafo
 testAlgoritmo
