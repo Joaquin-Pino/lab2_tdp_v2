@@ -15,6 +15,8 @@ private:
     int calcularBeneficioTotal(); // implementar si es necesario
     void calcularYAsignarPesoYBeneficio();
 
+    void eliminarUltimo();
+
 public:
     Camino();
     Camino(std::vector<int> camino, const Grafo& grafo);
@@ -35,7 +37,7 @@ public:
     //todo: implementar correctamente
     bool verificarCamino(int wMax); // verifica si camino es valido
 
-    void agregarNodo(int id);
+    bool agregarNodo(int id);
     void eliminarNodo(int id);
 
     int getUltimoNodo();

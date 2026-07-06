@@ -16,7 +16,7 @@
 using namespace std;
 using namespace std::chrono;
 
-class MenuOrienteering {
+class Menu {
 private:
     unique_ptr<Grafo> grafo;
 
@@ -194,7 +194,7 @@ public:
 };
 
 int main() {
-    MenuOrienteering menu;
+    Menu menu;
     menu.ejecutar();
     return 0;
 }

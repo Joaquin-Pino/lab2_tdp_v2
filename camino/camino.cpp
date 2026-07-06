@@ -19,8 +19,14 @@ bool Camino::operator>(const Camino& otro) const {
     return this->getBeneficioTotal() > otro.getBeneficioTotal();
 }
 
-void Camino::agregarNodo(int id){
-    if (visitados.count(id)) return;
+bool Camino::agregarNodo(int id){
+    // TODO: si id ya esta visitado se descarta en silencio (sin sumar peso ni
+    // agregar al vector). Esto es intencional para concatenar(), pero si el
+    // camino de completacion (dijkstraCamino) pasa por un nodo ya presente en
+    // el prefijo, quedan dos nodos consecutivos que quizas no tienen arista y
+    // el peso/beneficio del tramo se calcula mal. Considerar retornar bool para
+    // avisar cuando se descarto un nodo y validar factibilidad en concatenar().
+    if (visitados.count(id) > 0) return false;
     visitados.insert(id);
 
     if (!camino.empty()){
@@ -35,6 +41,7 @@ void Camino::agregarNodo(int id){
     }
 
     camino.push_back(id);
+    return true;
 }
 
 void Camino::eliminarNodo(int id){
@@ -170,22 +177,43 @@ bool Camino::llegaFinal(){
     return false;
 }
 
-void Camino::concatenar(const vector<int> &c){
-    // dijkstraCamino(origen, destino) devuelve [origen, ..., destino], y
-    // origen suele ser el ultimo nodo ya presente en el camino (p.ej. al
-    // completar el camino del goloso). agregarNodo ignora ese nodo repetido
-    // y va sumando peso/beneficio y marcando visitados para el resto.
-    for (int id : c) agregarNodo(id);
-}
-
 
 void Camino::setPesoTotal(int p){
     pesoTotal = p;
 }
 void Camino::setCamino(std::vector<int> c){
+    // TODO: reemplaza el vector pero NO reconstruye visitados (ni peso/beneficio),
+    // dejando la invariante rota: tras un setCamino, nodoFueVisitado()/agregarNodo()
+    // dan resultados falsos. Actualmente nadie lo llama, pero al escribir B&B/main
+    // hay que rehacer visitados (y recalcular peso/beneficio) como el constructor,
+    // o eliminar este setter.
     camino = c;
 }
 
 void Camino::setBeneficio(int n){
     beneficioTotal = n;
+}
+
+void Camino::concatenar(const vector<int>& c) {
+    for (int id : c){
+        if (nodoFueVisitado(id)){
+            // truncar el prefijo hasta ese nodo para mantener el camino simple.
+            // (agregarNodo dejaria un hueco sin arista -> revienta getPeso en 2-OPT)
+            while (!camino.empty() && camino.back() != id) eliminarUltimo();
+        } else {
+            agregarNodo(id); // arista prev->id garantizada por dijkstraCamino
+        }
+    }
+}
+
+void Camino::eliminarUltimo(){
+    if (camino.empty()) return;
+    int ultimo = camino.back();
+    if (camino.size() >= 2){
+        Nodo a = grafo->getArista(camino[camino.size() - 2], ultimo);
+        pesoTotal -= a.costo;
+        beneficioTotal -= a.beneficio;
+    }
+    visitados.erase(ultimo);
+    camino.pop_back();
 }
