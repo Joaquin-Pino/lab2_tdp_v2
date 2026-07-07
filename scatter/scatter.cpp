@@ -29,95 +29,67 @@ size_t Scatter::ParHash::operator()(const pair<vector<int>, vector<int>>& par) c
 }
 
 Camino Scatter::resolver(int maxIter) {
-    Kopt koptSolver(*grafo);
     const int TAM_REFSET = 10;
-    const int N_GEN = 30;                  // se generan pocas soluciones...
-    const int N_REFINAR = 2 * TAM_REFSET;  // ...y se refina solo el mejor tramo
-    const int MAX_SEG = 3;                 // largo max de detour en insertarSegmentos
+    const int N_GEN      = 30;              // construcciones aleatorias iniciales
+    const int N_REFINAR  = 2 * TAM_REFSET;  // cuantas de esas se refinan (colchon)
+    const int MAX_DETOUR = 3;               // largo max de detour en el pulido final
 
+    // --- 1. Poblacion inicial: construcciones + ancla golosa. Se refinan solo
+    //        las N_REFINAR mejores en crudo (refinar es lo caro). ---
     vector<Camino> soluciones = generarSoluciones(N_GEN);
-
-    // Ordenar por beneficio CRUDO y refinar con 2-OPT (first-improvement) solo
-    // las N_REFINAR mejores, no las N_GEN: refinar es lo caro. Se refina el
-    // doble del refSet como colchon, porque una solucion mediocre en crudo
-    // puede escalar al refinarla.
     sort(soluciones.begin(), soluciones.end(), greater<Camino>());
     size_t lim = min((size_t)N_REFINAR, soluciones.size());
-    for (size_t i = 0; i < lim; ++i) {
-        // 2-OPT reordena y libera peso; repararEInsertar rellena el presupuesto
-        // ocioso con nodos beneficiosos. Esto es lo que sube por encima del
-        // optimo local del 2-OPT (incluye al ancla golosa, que tenia presupuesto
-        // sin usar).
-        soluciones[i] = koptSolver.resolver(soluciones[i], true, 2);
-        soluciones[i] = repararEInsertar(soluciones[i]);
-    }
+    for (size_t i = 0; i < lim; ++i)
+        soluciones[i] = refinar(soluciones[i]);
     sort(soluciones.begin(), soluciones.begin() + lim, greater<Camino>());
 
-    // obtenemos los 10 mejores (ya refinados) o la lista completa si hay menos
+    //RefSet = las TAM_REFSET soluciones de mayor beneficio.
     vector<Camino> refSet(soluciones.begin(),
-                           soluciones.begin() + min((size_t)TAM_REFSET, soluciones.size()));
-
+                          soluciones.begin() + min((size_t)TAM_REFSET, soluciones.size()));
     unordered_set<pair<vector<int>, vector<int>>, ParHash> usados;
 
-    int iter = 0;
-    while (iter < maxIter) {
-
-        // Subset generation
+    for (int iter = 0; iter < maxIter; ++iter) {
         vector<pair<Camino, Camino>> pares;
-        for (size_t i = 0; i < refSet.size(); ++i) {
-            for (size_t j = i + 1; j < refSet.size(); ++j) {
-                // si find no encuentra nada llega hasta el final de el set usados
-                if (usados.find(clavePar(refSet[i], refSet[j])) == usados.end()) {
+        for (size_t i = 0; i < refSet.size(); ++i)
+            for (size_t j = i + 1; j < refSet.size(); ++j)
+                if (!usados.count(clavePar(refSet[i], refSet[j])))
                     pares.push_back({refSet[i], refSet[j]});
-                }
-            }
-        }
 
+        // refSet agotado (todos los pares ya combinados): conservar el mejor y
+        // regenerar el resto para diversificar.
         if (pares.empty()) {
-            // reconstruir : conservar solo el mejor, regenerar el resto
-            // max_element retorna un iterador a un elemento del set
             Camino mejor = *max_element(refSet.begin(), refSet.end());
-
-            vector<Camino> nuevas = generarSolucionesAleatorias(TAM_REFSET - 1);
-            for (Camino& c : nuevas) {
-                c = koptSolver.resolver(c, true, 2);
-                c = repararEInsertar(c);
-            }
-
-            refSet.clear();
+            refSet = generarSolucionesAleatorias(TAM_REFSET - 1);
+            for (Camino& c : refSet) c = refinar(c);
             refSet.push_back(mejor);
-            refSet.insert(refSet.end(), nuevas.begin(), nuevas.end());
-
-            usados.clear(); // RefSet es enteramente nuevo
-        } else {
-            //
-            vector<Camino> pool;
-            for (auto& par : pares) {
-                Camino nuevo = combinar(par.first, par.second);
-                nuevo = koptSolver.resolver(nuevo, true, 2);
-                nuevo = repararEInsertar(nuevo);
-                pool.push_back(nuevo);
-                usados.insert(clavePar(par.first, par.second));
-            }
-
-            // Reference set update
-            vector<Camino> todos = refSet;
-            todos.insert(todos.end(), pool.begin(), pool.end());
-            sort(todos.begin(), todos.end(), greater<Camino>());
-            todos.resize(min(todos.size(), (size_t)TAM_REFSET));
-            refSet = todos;
+            usados.clear();
+            continue;
         }
 
-        iter++;
+        // los hijos compiten con el refSet actual; sobreviven las mejores.
+        vector<Camino> candidatos = refSet;
+        for (auto& [p1, p2] : pares) {
+            candidatos.push_back(refinar(combinar(p1, p2)));
+            usados.insert(clavePar(p1, p2));
+        }
+        sort(candidatos.begin(), candidatos.end(), greater<Camino>());
+        candidatos.resize(min(candidatos.size(), (size_t)TAM_REFSET));
+        refSet = candidatos;
     }
 
-    // Pulido final del ganador: el operador de segmentos (caro) no se corre en
-    // cada hijo, asi que se aplica una vez a la mejor solucion para exprimir el
-    // presupuesto ocioso que haya quedado.
+    // --- 4. Pulido final: solo al ganador se le corren detours largos (caros),
+    //        para exprimir el presupuesto ocioso que haya quedado. ---
     Camino mejor = *max_element(refSet.begin(), refSet.end());
-    mejor = repararEInsertar(mejor);
-    mejor = insertarSegmentos(mejor, MAX_SEG);
-    return mejor;
+    return rellenarPresupuesto(mejor, MAX_DETOUR);
+}
+
+// 2-OPT reordena el camino y libera peso; rellenarPresupuesto usa ese peso
+// libre para insertar nodos beneficiosos. Solo detours de 1 nodo aca: los mas
+// largos (caros) se dejan para el pulido final del ganador.
+Camino Scatter::refinar(const Camino& solucion) const {
+    Kopt kopt(*grafo);
+    Camino r = kopt.resolver(solucion, true, 2);
+    return rellenarPresupuesto(r, 1);
 }
 
 bool Scatter::sinDuplicados(const vector<int>& mitad1,
@@ -189,19 +161,26 @@ Camino Scatter::combinar(const Camino& C1, const Camino& C2) const {
 }
 
 
-Camino Scatter::construccionAleatoria() {
+Camino Scatter::construccionAleatoria(const vector<int>& anclaCamino,
+                                      const vector<int>& distInv) {
     const int vFin = grafo->getIdNodoFinal();
-    // costo minimo de cada nodo al destino: sirve para no extender por un nodo
-    // desde el cual ya no se pueda cerrar el camino dentro del presupuesto.
-    const vector<int> distInv = grafo->dijkstraInvertido(vFin);
 
-    vector<int> camino;
-    camino.push_back(grafo->getIdNodoInicial());
-    unordered_set<int> enCamino;
-    enCamino.insert(camino.front());
+    // ancla demasiado corta: no hay tramo que perturbar, se devuelve tal cual
+    if (anclaCamino.size() < 2) return Camino(anclaCamino, *grafo);
+
+    // Se conserva un prefijo aleatorio del ancla (ruin-and-recreate): el prefijo
+    // aporta la calidad de la golosa; la cola se reconstruye al azar mas abajo,
+    // aportando la diversidad que la combinacion necesita.
+    uniform_int_distribution<size_t> distCorte(1, anclaCamino.size() - 1);
+    size_t corte = distCorte(rng);
+
+    vector<int> camino(anclaCamino.begin(), anclaCamino.begin() + corte);
+    unordered_set<int> enCamino(camino.begin(), camino.end());
 
     double pesoActual = 0.0;
-    int actual = camino.front();
+    for (size_t i = 0; i + 1 < camino.size(); ++i)
+        pesoActual += grafo->getPeso(camino[i], camino[i + 1]);
+    int actual = camino.back();
 
     // Largo objetivo aleatorio: da diversidad de tamanos entre soluciones y
     // evita construir caminos de casi N nodos (que hacen carisimo al 2-OPT
@@ -211,10 +190,8 @@ Camino Scatter::construccionAleatoria() {
 
     const double ALPHA = 0.3; // fraccion superior de candidatos que forma la RCL
 
-    // Extension hacia adelante estilo GRASP: se agregan nodos al final del
-    // camino (como el goloso), no por insercion en triangulos. Esto crece en
-    // grafos dispersos, donde a lo largo del camino mas corto casi no existen
-    // aristas u->b que habiliten la insercion clasica.
+    // Reconstruccion de la cola por extension GRASP: se agregan vecinos no
+    // visitados (RCL por eficiencia) hasta el destino o el largo objetivo.
     while (actual != vFin && (int)camino.size() < largoObjetivo) {
         vector<CandidatoExtension> candidatos =
             candidatosExtension(actual, pesoActual, enCamino, distInv);
@@ -305,64 +282,6 @@ Camino Scatter::solucionGreedy() const {
     return inicial;
 }
 
-Camino Scatter::repararEInsertar(const Camino& solucion) const {
-    vector<int> camino = solucion.getCamino();
-    unordered_set<int> enCamino(camino.begin(), camino.end());
-    const int maxW = grafo->getMaxW();
-
-    // peso actual del camino (se recalcula una vez; luego se mantiene por delta)
-    int pesoActual = 0;
-    for (size_t i = 0; i + 1 < camino.size(); ++i) {
-        pesoActual += grafo->getPeso(camino[i], camino[i + 1]);
-    }
-
-    // Best-improvement: en cada vuelta se aplica la insercion factible de mayor
-    // ganancia de beneficio y se repite, porque cada insercion crea dos pares
-    // nuevos donde pueden aparecer mas inserciones (efecto cascada).
-    bool mejoro = true;
-    while (mejoro) {
-        mejoro = false;
-
-        int mejorDeltaBenef = 0;   // solo se aceptan inserciones que aumentan beneficio
-        int mejorDeltaPeso = 0;
-        int mejorNodo = -1;
-        size_t mejorPos = 0;
-
-        for (size_t pos = 0; pos + 1 < camino.size(); ++pos) {
-            int a = camino[pos];
-            int b = camino[pos + 1];
-            int pesoAB = grafo->getPeso(a, b);
-            int benefAB = grafo->getBeneficio(a, b);
-
-            for (const Nodo& vecino : grafo->getVecinos(a)) {
-                int u = vecino.destino;
-                if (enCamino.count(u)) continue;
-                if (!grafo->existeArista(u, b)) continue;
-
-                int deltaPeso = vecino.costo + grafo->getPeso(u, b) - pesoAB;
-                if (pesoActual + deltaPeso > maxW) continue;
-
-                int deltaBenef = vecino.beneficio + grafo->getBeneficio(u, b) - benefAB;
-                if (deltaBenef > mejorDeltaBenef) {
-                    mejorDeltaBenef = deltaBenef;
-                    mejorDeltaPeso = deltaPeso;
-                    mejorNodo = u;
-                    mejorPos = pos;
-                }
-            }
-        }
-
-        if (mejorNodo != -1) {
-            camino.insert(camino.begin() + mejorPos + 1, mejorNodo);
-            enCamino.insert(mejorNodo);
-            pesoActual += mejorDeltaPeso;
-            mejoro = true;
-        }
-    }
-
-    return Camino(camino, *grafo);
-}
-
 void Scatter::buscarDetour(int actual, int destino, int maxNodos,
                            int pesoDisponible, int pesoBase, int benefBase,
                            int pesoAcum, int benefAcum,
@@ -382,9 +301,9 @@ void Scatter::buscarDetour(int actual, int destino, int maxNodos,
         actualNodos.push_back(w);
         usadosLocal.insert(w);
 
-        // cerrar el detour w->destino (solo con >= 2 nodos: el caso de 1 nodo
-        // ya lo cubre repararEInsertar)
-        if ((int)actualNodos.size() >= 2 && grafo->existeArista(w, destino)) {
+        // cerrar el detour w->destino (a->...->w->destino ya es un sub-camino
+        // valido con >= 1 nodo nuevo)
+        if (grafo->existeArista(w, destino)) {
             int pesoT = nuevoPeso + grafo->getPeso(w, destino);
             if (pesoT <= pesoDisponible) {
                 int deltaBenef = (nuevoBenef + grafo->getBeneficio(w, destino)) - benefBase;
@@ -407,7 +326,7 @@ void Scatter::buscarDetour(int actual, int destino, int maxNodos,
     }
 }
 
-Camino Scatter::insertarSegmentos(const Camino& solucion, int maxNodos) const {
+Camino Scatter::rellenarPresupuesto(const Camino& solucion, int maxNodos) const {
     vector<int> camino = solucion.getCamino();
     unordered_set<int> enCamino(camino.begin(), camino.end());
     const int maxW = grafo->getMaxW();
@@ -418,10 +337,9 @@ Camino Scatter::insertarSegmentos(const Camino& solucion, int maxNodos) const {
     }
 
     // Se barre el camino aplicando, en cada arista, el mejor detour factible
-    // (best-improvement local) apenas se encuentra. Un barrido inserta muchos
-    // segmentos; se repite mientras algun barrido logre insertar. Es mucho mas
-    // barato que reescanear todo el camino tras cada insercion, porque el DFS
-    // -que es lo caro- se corre una vez por arista y por barrido.
+    // apenas se encuentra. Un barrido inserta muchos detours; se repite mientras
+    // alguno logre insertar. Es mas barato que reescanear todo el camino tras
+    // cada insercion, porque el DFS -lo caro- se corre una vez por arista y barrido.
     bool huboInsercion = true;
     while (huboInsercion) {
         huboInsercion = false;
@@ -457,17 +375,20 @@ Camino Scatter::insertarSegmentos(const Camino& solucion, int maxNodos) const {
 }
 
 vector<Camino> Scatter::generarSolucionesAleatorias(int n){
+    // distInv y el ancla se calculan UNA vez por poblacion (no por construccion):
+    // ambos dependen solo del grafo, recalcularlos por solucion era puro costo.
+    const vector<int> distInv = grafo->dijkstraInvertido(grafo->getIdNodoFinal());
+    const vector<int> anclaCamino = solucionGreedy().getCamino();
+
     vector<Camino> soluciones;
     soluciones.reserve(n);
-    for (int i = 0; i < n; ++i) {
-        soluciones.push_back(construccionAleatoria());
-    }
+    for (int i = 0; i < n; ++i)
+        soluciones.push_back(construccionAleatoria(anclaCamino, distInv));
     return soluciones;
 }
 
 vector<Camino> Scatter::generarSoluciones(int n){
-    // Poblacion inicial = n construcciones aleatorias + el ancla golosa, que
-    // garantiza que Scatter parta de al menos la calidad del goloso.
+    // Poblacion inicial = n perturbaciones del ancla + el ancla golosa misma.
     vector<Camino> soluciones = generarSolucionesAleatorias(n);
     soluciones.push_back(solucionGreedy());
     return soluciones;
