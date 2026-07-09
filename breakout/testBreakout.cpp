@@ -7,18 +7,17 @@
 using namespace std;
 
 // Mismo grafo que testKopt: 0-1-2-3-4 es el camino directo, pero
-// 0->2->1->3->4 usa aristas alternativas de mejor beneficio.
-// Camino directo: peso=4, beneficio=4. Con el swap: peso=4, beneficio=7.
+// 0-2-1-3-4 usa aristas alternativas de mejor beneficio.
+// Camino directo: peso=4, beneficio=4. Con el swap: peso=4, beneficio=6.
 // El goloso ya encuentra este optimo solo, asi que sirve para verificar
 // que Breakout no lo empeora (caminoBest solo se actualiza si mejora).
 Grafo crearGrafoConMejoraSwap() {
-    Grafo g(5, 7, 10);
+    Grafo g(5, 6, 10);
     g.insertarArista(0, 1, 1, 1);
     g.insertarArista(1, 2, 1, 1);
     g.insertarArista(2, 3, 1, 1);
     g.insertarArista(3, 4, 1, 1);
     g.insertarArista(0, 2, 1, 2);
-    g.insertarArista(2, 1, 1, 2);
     g.insertarArista(1, 3, 1, 2);
     return g;
 }
@@ -40,7 +39,7 @@ void test_resolverEncuentraOptimoConocido() {
 
     assert(esCaminoValido(g, resultado.getCamino()));
     assert(resultado.getPesoTotal() == 4);
-    assert(resultado.getBeneficioTotal() == 7);
+    assert(resultado.getBeneficioTotal() == 6);
     assert(resultado.getPesoTotal() <= g.getMaxW());
     cout << "test_resolverEncuentraOptimoConocido: OK\n";
 }

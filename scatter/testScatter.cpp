@@ -118,17 +118,21 @@ void test_combinarDescartaUnionQueExcedePresupuesto() {
     cout << "test_combinarDescartaUnionQueExcedePresupuesto: OK\n";
 }
 
-// Grafo denso (M=6, N=4 -> densidad 0.5 >= 0.3): combinar debe usar la
+// Grafo denso (es el K4, N=4 -> densidad 1.0 >= 0.6): combinar debe usar la
 // insercion de subcadena, no el empalme. base=[0,1,3] y donante=[0,2,3]
-// comparten extremos; la arista 1->2 (alto beneficio) permite injertar el
+// comparten extremos; la arista {1,2} (alto beneficio) permite injertar el
 // nodo 2 entre 1 y 3, dando 0-1-2-3 con mas beneficio que cualquiera de los
 // dos padres.
+// Al ser no dirigido el nodo 2 tambien entra en el hueco (0,1) dando 0-2-1-3,
+// asi que {2,3} vale mas que {1,3} para que el injerto en (1,3) gane sin empate:
+//   hueco (1,3): -b(1,3) + b(1,2) + b(2,3) = -1 + 5 + 2 = 6
+//   hueco (0,1): -b(0,1) + b(0,2) + b(2,1) = -1 + 1 + 5 = 5
 Grafo crearGrafoDenso() {
     Grafo g(4, 6, 10);
     g.insertarArista(0, 1, 1, 1);
     g.insertarArista(1, 3, 1, 1);
     g.insertarArista(0, 2, 1, 1);
-    g.insertarArista(2, 3, 1, 1);
+    g.insertarArista(2, 3, 1, 2);
     g.insertarArista(1, 2, 1, 5); // habilita el injerto del nodo 2
     g.insertarArista(0, 3, 5, 1); // sube la densidad
     return g;
@@ -139,12 +143,12 @@ void test_combinarInsertaSubcadenaEnGrafoDenso() {
     Camino c1(vector<int>{0, 1, 3}, g);
     Camino c2(vector<int>{0, 2, 3}, g);
 
-    Scatter scatter(g); // densidad 0.5 >= umbral 0.3 -> rama densa
+    Scatter scatter(g); // densidad 1.0 >= umbral 0.6 -> rama densa
     Camino resultado = scatter.combinar(c1, c2);
 
     assert((resultado.getCamino() == vector<int>{0, 1, 2, 3}));
     assert(resultado.getPesoTotal() == 3);
-    assert(resultado.getBeneficioTotal() == 7);
+    assert(resultado.getBeneficioTotal() == 8); // 1 + 5 + 2
     assert(esCaminoValido(g, resultado.getCamino()));
     cout << "test_combinarInsertaSubcadenaEnGrafoDenso: OK\n";
 }

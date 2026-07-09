@@ -20,7 +20,7 @@ private:
     std::mt19937 rng;
 
     int maxNodosInsertar;      // largo maximo de la subcadena a injertar
-    double umbralDensidad;     // frontera denso/disperso sobre M/(N(N-1))
+    double umbralDensidad;     // frontera denso/disperso sobre 2M/(N(N-1))
     bool grafoEsDenso;         // decidido una vez en el ctor
     ModoInsercion modo;        // variante de insertarSubcadena a usar
 
@@ -28,7 +28,9 @@ private:
     static constexpr int TAM_POBLACION = 30;
     static constexpr int TAM_REFSET = 10;
 
-    // Densidad = aristas / aristas dirigidas posibles = M / (N(N-1)).
+    // Densidad del grafo no dirigido: suma de grados / pares ordenados posibles,
+    // o sea 2M / (N(N-1)), con M = cantidad de aristas no dirigidas. Vale 1 en
+    // el grafo completo.
     double densidadGrafo() const;
 
     // --- Construccion GRASP ----------------------------------------------
@@ -99,8 +101,12 @@ private:
 
 public:
     Scatter();
+    // umbralDensidad = 0.6: en un grafo no dirigido cada arista suma 2 al total
+    // de grados, asi que la densidad duplica a la del mismo conjunto de aristas
+    // leido como dirigido. El 0.6 conserva la clasificacion denso/disperso que
+    // daba el 0.3 sobre la densidad dirigida.
     Scatter(const Grafo& grafo, int maxNodosInsertar = 3,
-            double umbralDensidad = 0.3, ModoInsercion modo = MEJOR);
+            double umbralDensidad = 0.6, ModoInsercion modo = MEJOR);
 
     Camino resolver(int maxIter);
     Camino combinar(const Camino& C1, const Camino& C2) const;

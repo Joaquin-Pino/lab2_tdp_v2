@@ -51,13 +51,20 @@ void SolverBranchAndBound::evaluarCandidato(Camino c) {
 }
 
 Camino SolverBranchAndBound::calcularCotaInferior() {
-    // Scatter es la heuristica mas fuerte (combina soluciones), asi que da la
-    // mejor cota inferior. Su resultado es el incumbente inicial que arranca la
-    // poda del arbol.
-    Scatter scatter(*grafo);
-    evaluarCandidato(scatter.resolver(5));
+    // El goloso es barato en cualquier tamano: siempre aporta un candidato base
+    // y sirve de piso universal.
+    SolverGreedy greedy(*grafo);
+    evaluarCandidato(greedy.resolver());
 
-    // Red de seguridad: si Scatter no dio un camino completo, usar el
+    // Solo en grafos chicos/medianos se paga Scatter, que da una cota mucho mas
+    // ajustada (combina soluciones) pero cuyo 2-opt se dispara con caminos
+    // largos. En grafos grandes nos quedamos con la cota del goloso.
+    if (grafo->getCantVert() <= UMBRAL_GRAFO_GRANDE) {
+        Scatter scatter(*grafo);
+        evaluarCandidato(scatter.resolver(5));
+    }
+
+    // Red de seguridad: si ninguna heuristica dio un camino completo, usar el
     // camino de menor costo de origen a destino.
     if (mejorCamino.empty()) {
         vector<int> corto = grafo->dijkstraCamino(grafo->getIdNodoInicial(),

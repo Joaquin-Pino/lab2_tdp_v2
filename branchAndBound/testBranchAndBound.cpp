@@ -7,11 +7,12 @@
 
 using namespace std;
 
-// Grafo chico donde el optimo se conoce a mano.
-//   0 -> 1 (c1,b1)   0 -> 2 (c1,b5)
-//   1 -> 3 (c1,b1)   2 -> 3 (c1,b1)   1 -> 2 (c1,b5)
+// Grafo no dirigido chico donde el optimo se conoce a mano.
+//   0-1 (c1,b1)   0-2 (c1,b5)
+//   1-3 (c1,b1)   2-3 (c1,b1)   1-2 (c1,b5)
 //   destino = 3, W = 10
-// El mejor camino es 0->1->2->3 (peso 3, beneficio 1+5+1=7) frente a 0->2->3 (b6).
+// El mejor camino es 0-2-1-3 (peso 3, beneficio 5+5+1=11): usa las dos aristas
+// de beneficio 5. Le siguen 0-1-2-3 (b 1+5+1=7) y 0-2-3 (b 6).
 static Grafo construirGrafo() {
     Grafo g(4, 5, 10);
     g.insertarArista(0, 1, 1, 1);
@@ -29,9 +30,9 @@ void test_encuentraOptimo() {
 
     assert(r.esCaminoCompleto());
     assert(r.getPesoTotal() <= g.getMaxW());
-    // el optimo alcanzable es 0->1->2->3 con beneficio 7
-    assert(r.getBeneficioTotal() == 7);
-    vector<int> esperado = {0, 1, 2, 3};
+    // el optimo alcanzable es 0-2-1-3 con beneficio 11
+    assert(r.getBeneficioTotal() == 11);
+    vector<int> esperado = {0, 2, 1, 3};
     assert(r.getCamino() == esperado);
     cout << "test_encuentraOptimo OK\n";
 }

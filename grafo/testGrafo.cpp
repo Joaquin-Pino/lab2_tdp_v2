@@ -20,8 +20,59 @@ void test_insertarYGetVecinos() {
     assert(vecinos.size() == 2);
     assert(vecinos[0].destino == 1 && vecinos[0].costo == 2 && vecinos[0].beneficio == 3);
     assert(vecinos[1].destino == 2 && vecinos[1].costo == 4 && vecinos[1].beneficio == 1);
-    assert(g.getVecinos(1).empty());
+
+    // grafo no dirigido: cada extremo ve a la arista con el mismo costo/beneficio
+    auto vecinos1 = g.getVecinos(1);
+    assert(vecinos1.size() == 1);
+    assert(vecinos1[0].destino == 0 && vecinos1[0].costo == 2 && vecinos1[0].beneficio == 3);
+
+    auto vecinos2 = g.getVecinos(2);
+    assert(vecinos2.size() == 1);
+    assert(vecinos2[0].destino == 0 && vecinos2[0].costo == 4 && vecinos2[0].beneficio == 1);
     std::cout << "test_insertarYGetVecinos: OK\n";
+}
+
+// existeArista y getArista deben ser simetricas: la arista {0,1} se consulta
+// indistintamente en cualquiera de los dos sentidos.
+void test_aristaEsSimetrica() {
+    Grafo g(3, 1, 10);
+    g.insertarArista(0, 1, 2, 3);
+
+    assert(g.existeArista(0, 1));
+    assert(g.existeArista(1, 0));
+    assert(!g.existeArista(0, 2));
+    assert(!g.existeArista(2, 0));
+
+    assert(g.getArista(0, 1).costo == g.getArista(1, 0).costo);
+    assert(g.getArista(0, 1).beneficio == g.getArista(1, 0).beneficio);
+    assert(g.getPeso(1, 0) == 2 && g.getBeneficio(1, 0) == 3);
+    std::cout << "test_aristaEsSimetrica: OK\n";
+}
+
+// Una arista repetida (en el mismo sentido o en el inverso, aun con otro
+// costo/beneficio) se ignora: se conserva la primera lectura. Sin esto
+// listaAdy tendria aristas paralelas que ady no puede representar.
+void test_insertarAristaDuplicadaSeIgnora() {
+    Grafo g(3, 3, 10);
+    g.insertarArista(0, 1, 2, 3);
+    g.insertarArista(0, 1, 9, 9); // duplicada, mismo sentido
+    g.insertarArista(1, 0, 7, 7); // duplicada, sentido inverso
+
+    assert(g.getVecinos(0).size() == 1);
+    assert(g.getVecinos(1).size() == 1);
+    assert(g.getPeso(0, 1) == 2 && g.getBeneficio(0, 1) == 3);
+    assert(g.getPeso(1, 0) == 2 && g.getBeneficio(1, 0) == 3);
+    std::cout << "test_insertarAristaDuplicadaSeIgnora: OK\n";
+}
+
+// Un lazo no puede formar parte de un camino simple: se descarta al insertar.
+void test_insertarLazoSeIgnora() {
+    Grafo g(3, 1, 10);
+    g.insertarArista(1, 1, 5, 5);
+
+    assert(g.getVecinos(1).empty());
+    assert(!g.existeArista(1, 1));
+    std::cout << "test_insertarLazoSeIgnora: OK\n";
 }
 
 void test_getArista() {
@@ -69,12 +120,16 @@ void test_cargarDesdeArchivo() {
     Nodo a30 = g.getArista(3, 0);
     assert(a30.costo == 4 && a30.beneficio == 1);
 
+    // las aristas del archivo se leen como no dirigidas
+    assert(g.existeArista(1, 0) && g.existeArista(0, 3));
+    assert(g.getPeso(0, 3) == 4 && g.getBeneficio(0, 3) == 1);
+
     std::cout << "test_cargarDesdeArchivo: OK\n";
 }
 
 void test_dijkstra() {
-    // 0->1 (1), 0->2 (4), 1->2 (2), 1->3 (5), 2->3 (1)
-    // camino minimo 0->3: 0->1->2->3 = 4
+    // 0-1 (1), 0-2 (4), 1-2 (2), 1-3 (5), 2-3 (1)
+    // camino minimo 0..3: 0-1-2-3 = 4
     Grafo g(4, 5, 20);
     g.insertarArista(0, 1, 1, 0);
     g.insertarArista(0, 2, 4, 0);
@@ -92,7 +147,7 @@ void test_dijkstra() {
 
 void test_dijkstraInvertido() {
     // mismo grafo, dijkstraInvertido desde 3
-    // dist[v] = costo minimo de v hasta 3
+    // dist[v] = costo minimo de v hasta 3 (la cota que usa la poda de B&B)
     Grafo g(4, 5, 20);
     g.insertarArista(0, 1, 1, 0);
     g.insertarArista(0, 2, 4, 0);
@@ -111,6 +166,9 @@ void test_dijkstraInvertido() {
 int main() {
     test_getters();
     test_insertarYGetVecinos();
+    test_aristaEsSimetrica();
+    test_insertarAristaDuplicadaSeIgnora();
+    test_insertarLazoSeIgnora();
     test_getArista();
     test_getAristaNoExiste();
     test_cargarDesdeArchivo();

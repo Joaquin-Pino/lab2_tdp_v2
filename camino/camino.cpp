@@ -44,23 +44,31 @@ bool Camino::agregarNodo(int id){
     return true;
 }
 
-void Camino::eliminarNodo(int id){
-    // borrar del camino
-    for (int i = 0; i < (int)camino.size() ; i++){
-        if (camino[i] == id){
-            Nodo temp = grafo->getArista(camino[i - 1], id);
-            Nodo temp2 = grafo->getArista(id, camino[i+1]);
+bool Camino::eliminarNodo(int id){
+    int i = getPosicionNodo(id);
 
-            // reducir pesoTotal y beneficioTotal
-            pesoTotal -= (temp.costo + temp2.costo);
-            beneficioTotal -= (temp.beneficio + temp2.beneficio);
+    // Solo nodos interiores: el primero y el ultimo son los extremos que
+    // definen el camino, y ademas no tienen una arista de cada lado.
+    if (i <= 0 || i >= (int)camino.size() - 1) return false;
 
-            camino.erase(camino.begin() + i); 
-            break;
-        }
-    }
-    // borrar de visitado
+    int prev = camino[i - 1];
+    int sig  = camino[i + 1];
+
+    // Al sacar id, prev y sig quedan consecutivos: si esa arista no existe el
+    // camino resultante no seria recorrible en el grafo.
+    if (!grafo->existeArista(prev, sig)) return false;
+
+    Nodo entrada = grafo->getArista(prev, id);
+    Nodo salida  = grafo->getArista(id, sig);
+    Nodo puente  = grafo->getArista(prev, sig);
+
+    // Se reemplazan las dos aristas del nodo por la arista puente.
+    pesoTotal      += puente.costo     - entrada.costo     - salida.costo;
+    beneficioTotal += puente.beneficio - entrada.beneficio - salida.beneficio;
+
+    camino.erase(camino.begin() + i);
     visitados.erase(id);
+    return true;
 }
 
 // TODO: que esto se encargue solo de intercambiar

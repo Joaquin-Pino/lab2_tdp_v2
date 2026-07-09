@@ -38,7 +38,12 @@ public:
     bool verificarCamino(int wMax); // verifica si camino es valido
 
     bool agregarNodo(int id);
-    void eliminarNodo(int id);
+
+    // Elimina un nodo interior y lo reemplaza por la arista puente entre sus
+    // vecinos, actualizando peso y beneficio. Devuelve false (sin tocar el
+    // camino) si el nodo no esta, si es un extremo, o si sus vecinos no quedan
+    // unidos por una arista del grafo.
+    bool eliminarNodo(int id);
 
     int getUltimoNodo();
 

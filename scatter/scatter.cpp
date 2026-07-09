@@ -7,7 +7,7 @@ using namespace std;
 
 Scatter::Scatter()
     : grafo(nullptr), rng(std::random_device{}()),
-      maxNodosInsertar(3), umbralDensidad(0.3), grafoEsDenso(false), modo(MEJOR) {}
+      maxNodosInsertar(3), umbralDensidad(0.6), grafoEsDenso(false), modo(MEJOR) {}
 
 Scatter::Scatter(const Grafo& grafo, int maxNodosInsertar,
                  double umbralDensidad, ModoInsercion modo)

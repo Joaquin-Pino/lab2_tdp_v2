@@ -4,6 +4,7 @@
 
 #include "../grafo/grafo.h"
 #include "../camino/camino.h"
+#include "../solverGreedy/solverGreedy.h"
 #include "../scatter/scatter.h"
 
 // SolverBranchAndBound: el "mejor algoritmo" y orquestador.
@@ -25,6 +26,14 @@
 //     camino encontrado hasta el momento.
 class SolverBranchAndBound {
 private:
+    // Umbral de tamano (nro de vertices) para elegir la heuristica de cota
+    // inferior: por debajo se usa Scatter (cota ajustada); por encima solo el
+    // goloso, porque el 2-opt de Scatter escala ~O(L^2..L^3) en el largo del
+    // camino y en grafos grandes (caminos largos) se vuelve prohibitivo.
+    // Es calibrable; el driver real del costo es el largo del camino (que
+    // depende de W), no solo la cantidad de vertices.
+    static constexpr int UMBRAL_GRAFO_GRANDE = 2000;
+
     const Grafo* grafo;
     long maxIteraciones;   // tope de expansiones de nodo
     long iteraciones;      // contador interno de expansiones
@@ -40,7 +49,8 @@ private:
     // Precomputa maxBenefEntrada y totalBenefEntrada a partir de las aristas.
     void precomputarCotas();
 
-    // Corre las heuristicas implementadas y devuelve el mejor camino factible.
+    // Calcula el incumbente inicial eligiendo la heuristica segun el tamano del
+    // grafo (ver UMBRAL_GRAFO_GRANDE). Devuelve el mejor camino factible.
     Camino calcularCotaInferior();
 
     // Si el camino no termina en el destino lo cierra con el camino mas corto.
