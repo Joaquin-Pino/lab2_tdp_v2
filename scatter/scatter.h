@@ -4,30 +4,32 @@
 #include <vector>
 #include <random>
 #include <unordered_set>
+#include <utility>
 
 class Scatter {
+public:
+    // Operador de insercion de subcadena: MEJOR = best-improvement (evalua toda
+    // la vecindad y aplica el injerto de mayor beneficio), PRIMERA = first-fit
+    // (aplica el primer injerto factible). Se elige por parametro del ctor.
+    enum ModoInsercion { MEJOR, PRIMERA };
+
 private:
     const Grafo* grafo;
     std::mt19937 rng;
 
-    // ===== Poblacion inicial =====
+    int maxNodosInsertar;      // largo maximo de la subcadena a injertar
+    double umbralDensidad;     // frontera denso/disperso sobre M/(N(N-1))
+    bool grafoEsDenso;         // decidido una vez en el ctor
+    ModoInsercion modo;        // variante de insertarSubcadena a usar
 
-    // n perturbaciones del ancla + el ancla golosa.
-    std::vector<Camino> generarSoluciones(int n);
-    std::vector<Camino> generarSolucionesAleatorias(int n);
+    // Tamanos de la busqueda dispersa (calibrables).
+    static constexpr int TAM_POBLACION = 30;
+    static constexpr int TAM_REFSET = 10;
 
-    // Construccion por perturbacion (ruin-and-recreate): conserva un prefijo
-    // aleatorio del ancla golosa y reconstruye la cola al azar (RCL por
-    // eficiencia) hasta el destino. El prefijo aporta calidad; la cola, la
-    // diversidad que la combinacion necesita. distInv y anclaCamino se pasan ya
-    // calculados (son iguales en toda la poblacion).
-    Camino construccionAleatoria(const std::vector<int>& anclaCamino,
-                                 const std::vector<int>& distInv);
+    // Densidad = aristas / aristas dirigidas posibles = M / (N(N-1)).
+    double densidadGrafo() const;
 
-    // Solucion del goloso completada hasta el destino: ancla de calidad de la
-    // poblacion (el goloso es el unico constructor que crece caminos largos en
-    // grafos dispersos).
-    Camino solucionGreedy() const;
+    // --- Construccion GRASP ----------------------------------------------
 
     struct CandidatoExtension {
         int nodo;
@@ -48,7 +50,28 @@ private:
     std::vector<int> completarHastaDestino(std::vector<int> camino,
                                            std::unordered_set<int> enCamino) const;
 
-    // ===== Combinacion =====
+    // Una construccion golosa aleatorizada (GRASP): parte de [0] y extiende por
+    // una lista restringida de candidatos (RCL) segun eficiencia, cerrando al
+    // destino. distInv evita meterse en callejones sin salida en peso.
+    Camino construirGrasp(const std::vector<int>& distInv);
+
+    // n construcciones GRASP, cada una refinada con 2-opt.
+    std::vector<Camino> generarPoblacion(int n);
+
+    // --- Combinacion ------------------------------------------------------
+
+    // Injerta una subcadena de 'donante' (hasta maxNodosInsertar nodos nuevos)
+    // en 'base', entre un par (a,b) con aristas a->w1 y wk->b, sin repetir nodos
+    // y dentro de presupuesto. mejorFactible elige best- vs first-improvement.
+    // Devuelve (camino resultante, hubo injerto).
+    std::pair<std::vector<int>, bool> insertarSubcadena(
+        const std::vector<int>& base,
+        const std::vector<int>& donante,
+        bool mejorFactible) const;
+
+    // Empalme (operador para grafos dispersos): primera mitad de C1 + segunda
+    // mitad de C2 (o al reves). Solo necesita 1 arista en la union.
+    Camino empalme(const Camino& C1, const Camino& C2) const;
 
     // Une la primera mitad de 'primera' con la segunda mitad de 'segunda' si el
     // empalme existe como arista, no repite nodos y respeta el peso. (camino, ok).
@@ -59,50 +82,23 @@ private:
     bool sinDuplicados(const std::vector<int>& mitad1,
                        const std::vector<int>& mitad2) const;
 
-    // ===== Mejora local =====
-
-    // Refina una solucion: 2-OPT (reordena) + rellenarPresupuesto de 1 nodo
-    // (agrega beneficio en el peso liberado). Es el paso de mejora estandar.
+    // Refina una solucion con 2-opt (reordena para liberar peso). El agregado
+    // de nodos ya lo hace la combinacion.
     Camino refinar(const Camino& solucion) const;
 
-    // Rellena el presupuesto ocioso reemplazando aristas (a,b) por un sub-camino
-    // a->w1->...->wk->b de hasta 'maxNodos' nodos nuevos (detour). A diferencia
-    // del 2-OPT (que solo reordena), AGREGA beneficio: es lo que permite superar
-    // el optimo local del 2-OPT. maxNodos=1 => inserciones de un solo nodo.
-    Camino rellenarPresupuesto(const Camino& solucion, int maxNodos) const;
+    // --- RefSet -----------------------------------------------------------
 
-    // Un detour candidato que reemplaza una arista (a,b).
-    struct Detour {
-        std::vector<int> nodos;  // nodos intermedios nuevos w1..wk (k >= 1)
-        int deltaPeso = 0;       // cambio de peso del camino al aplicarlo
-        int deltaBenef = 0;      // cambio de beneficio (solo se aceptan > 0)
-    };
+    // Deduplica por camino y devuelve los b de mayor beneficio.
+    std::vector<Camino> seleccionarRefSet(std::vector<Camino> candidatos, int b) const;
 
-    // DFS acotado a 'maxNodos' nodos que actualiza 'mejor' con el detour de
-    // mayor ganancia de beneficio desde 'actual' hasta 'destino'.
-    void buscarDetour(int actual, int destino, int maxNodos,
-                      int pesoDisponible, int pesoBase, int benefBase,
-                      int pesoAcum, int benefAcum,
-                      const std::unordered_set<int>& enCamino,
-                      std::vector<int>& actualNodos,
-                      std::unordered_set<int>& usadosLocal,
-                      Detour& mejor) const;
-
-    // ===== RefSet: claves y hashing de pares ya combinados =====
-
-    struct VectorIntHash {
-        size_t operator()(const std::vector<int>& v) const;
-    };
-    struct ParHash {
-        size_t operator()(const std::pair<std::vector<int>, std::vector<int>>& par) const;
-    };
-    // Clave de un par de caminos, independiente del orden en que se pasen.
-    static std::pair<std::vector<int>, std::vector<int>> clavePar(const Camino& a,
-                                                                  const Camino& b);
+    // True si dos refSet (ya ordenados por seleccionarRefSet) son iguales.
+    bool mismosRefSet(const std::vector<Camino>& a,
+                      const std::vector<Camino>& b) const;
 
 public:
     Scatter();
-    Scatter(const Grafo& grafo);
+    Scatter(const Grafo& grafo, int maxNodosInsertar = 3,
+            double umbralDensidad = 0.3, ModoInsercion modo = MEJOR);
 
     Camino resolver(int maxIter);
     Camino combinar(const Camino& C1, const Camino& C2) const;

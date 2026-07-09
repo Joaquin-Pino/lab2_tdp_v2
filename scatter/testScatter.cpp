@@ -118,6 +118,37 @@ void test_combinarDescartaUnionQueExcedePresupuesto() {
     cout << "test_combinarDescartaUnionQueExcedePresupuesto: OK\n";
 }
 
+// Grafo denso (M=6, N=4 -> densidad 0.5 >= 0.3): combinar debe usar la
+// insercion de subcadena, no el empalme. base=[0,1,3] y donante=[0,2,3]
+// comparten extremos; la arista 1->2 (alto beneficio) permite injertar el
+// nodo 2 entre 1 y 3, dando 0-1-2-3 con mas beneficio que cualquiera de los
+// dos padres.
+Grafo crearGrafoDenso() {
+    Grafo g(4, 6, 10);
+    g.insertarArista(0, 1, 1, 1);
+    g.insertarArista(1, 3, 1, 1);
+    g.insertarArista(0, 2, 1, 1);
+    g.insertarArista(2, 3, 1, 1);
+    g.insertarArista(1, 2, 1, 5); // habilita el injerto del nodo 2
+    g.insertarArista(0, 3, 5, 1); // sube la densidad
+    return g;
+}
+
+void test_combinarInsertaSubcadenaEnGrafoDenso() {
+    Grafo g = crearGrafoDenso();
+    Camino c1(vector<int>{0, 1, 3}, g);
+    Camino c2(vector<int>{0, 2, 3}, g);
+
+    Scatter scatter(g); // densidad 0.5 >= umbral 0.3 -> rama densa
+    Camino resultado = scatter.combinar(c1, c2);
+
+    assert((resultado.getCamino() == vector<int>{0, 1, 2, 3}));
+    assert(resultado.getPesoTotal() == 3);
+    assert(resultado.getBeneficioTotal() == 7);
+    assert(esCaminoValido(g, resultado.getCamino()));
+    cout << "test_combinarInsertaSubcadenaEnGrafoDenso: OK\n";
+}
+
 // Grafo puramente lineal: el unico camino posible de 0 a N-1 es
 // 0-1-2-3-4. Sin aristas alternativas, generarCandidatos() nunca encuentra
 // nada que insertar, asi que la construccion aleatoria es en realidad
@@ -165,6 +196,7 @@ int main() {
     test_combinarUsaOpcionBCuandoAFalla();
     test_combinarRetornaMejorPadreSiNingunaUnionEsFactible();
     test_combinarDescartaUnionQueExcedePresupuesto();
+    test_combinarInsertaSubcadenaEnGrafoDenso();
     test_resolverConCaminoUnicoDevuelveEseCamino();
     test_resolverSobreGrafoGrandeRespetaInvariantes();
     cout << "--- Todos los tests de Scatter pasaron ---\n";
