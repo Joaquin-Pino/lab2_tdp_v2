@@ -12,6 +12,7 @@
 #include "kopt/kopt.h"
 #include "breakout/breakout.h"
 #include "scatter/scatter.h"
+#include "branchAndBound/branchAndBound.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -58,9 +59,18 @@ private:
         }
     }
 
+    void ejecutarBranchAndBound() {
+        SolverBranchAndBound bnb(*grafo);
+        auto inicio = high_resolution_clock::now();
+        Camino solucion = bnb.resolver();
+        auto fin = high_resolution_clock::now();
+        double ms = duration<double, milli>(fin - inicio).count();
+        imprimirResultado("Branch and Bound", solucion, ms);
+    }
+
     void ejecutarMejorAlgoritmo() {
         if (!hayGrafoCargado()) return;
-        cout << "Branch and Bound aun no esta implementado. Pruebe la opcion 3 con los algoritmos disponibles.\n";
+        ejecutarBranchAndBound();
     }
 
     void ejecutar2Opt() {
@@ -115,7 +125,7 @@ private:
                 ejecutarScatter();
                 break;
             case 4:
-                cout << "Branch and Bound aun no esta implementado.\n";
+                ejecutarBranchAndBound();
                 break;
             default:
                 cout << "Opcion invalida.\n";
