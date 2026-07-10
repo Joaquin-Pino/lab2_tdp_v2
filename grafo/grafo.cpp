@@ -31,10 +31,22 @@ Grafo Grafo::cargarDesdeArchivo(const string& filename) {
 }
 
 void Grafo::insertarArista(int origen, int destino, int costo, int beneficio) {
+    // Grafo NO DIRIGIDO: la arista se guarda en los dos extremos, de modo que
+    // getVecinos/getArista/existeArista son simetricos por construccion.
+    if (origen == destino) return; // un lazo nunca aparece en un camino simple
+
+    // Idempotente: si la arista ya fue declarada (en cualquier sentido) se
+    // conserva la primera. Los archivos grandes traen la misma arista repetida
+    // y pares reciprocos con costo/beneficio distintos; sin esto listaAdy
+    // tendria aristas paralelas que ady (un map) no puede representar, y
+    // getVecinos dejaria de coincidir con getPeso/getBeneficio.
+    if (existeArista(origen, destino)) return;
+
     listaAdy[origen].push_back({destino, costo, beneficio});
-    // emplace conserva la PRIMERA arista si hubiese duplicados origen->destino,
-    // igual que el scan lineal original sobre listaAdy.
     ady[origen].emplace(destino, Nodo{destino, costo, beneficio});
+
+    listaAdy[destino].push_back({origen, costo, beneficio});
+    ady[destino].emplace(origen, Nodo{origen, costo, beneficio});
 }
 
 const vector<Nodo>& Grafo::getVecinos(int idNodo) const {
@@ -104,45 +116,21 @@ vector<int> Grafo::dijkstraCamino(int origen, int destino) const {
 }
 
 vector<int> Grafo::dijkstraInvertido(int destino) const {
-    // Construye lista de adyacencia invertida y corre Dijkstra desde destino.
-    // El resultado dist[v] = costo mínimo en peso de v hasta destino.
-    vector<vector<Nodo>> listaInv(cantVert);
-    for (int u = 0; u < cantVert; u++) {
-        for (const Nodo& v : listaAdy[u]) {
-            listaInv[v.destino].push_back({u, v.costo, v.beneficio});
-        }
-    }
-
-    vector<int> dist(cantVert, INT_MAX);
-    priority_queue<pair<int,int>,
-                        vector<pair<int,int>>,
-                        greater<>> pq;
-    dist[destino] = 0;
-    pq.push({0, destino});
-
-    while (!pq.empty()) {
-        int d = pq.top().first;
-        int u = pq.top().second;
-        pq.pop();
-        if (d > dist[u]) continue;
-        for (const Nodo& v : listaInv[u]) {
-            if (dist[u] + v.costo < dist[v.destino]) {
-                dist[v.destino] = dist[u] + v.costo;
-                pq.push({dist[v.destino], v.destino});
-            }
-        }
-    }
-    return dist;
+    // dist[v] = costo minimo en peso de v hasta destino.
+    // Como el grafo es no dirigido, la lista de adyacencia invertida coincide
+    // con listaAdy, y el costo de v a destino es el mismo que de destino a v:
+    // basta un Dijkstra desde el destino.
+    return dijkstra(destino);
 }
 
 float Grafo::getRatioMejorEntrada(int id) const {
+    // Al ser no dirigido, las aristas entrantes a id son sus mismas incidentes:
+    // alcanza con recorrer listaAdy[id] en vez de barrer todo el grafo.
     float mejor = -1.0f;
-    for (int u = 0; u < cantVert; u++) {
-        for (const Nodo& n : listaAdy[u]) {
-            if (n.destino == id && n.costo > 0) {
-                float r = (float)n.beneficio / n.costo;
-                if (r > mejor) mejor = r;
-            }
+    for (const Nodo& n : listaAdy[id]) {
+        if (n.costo > 0) {
+            float r = (float)n.beneficio / n.costo;
+            if (r > mejor) mejor = r;
         }
     }
     return mejor;

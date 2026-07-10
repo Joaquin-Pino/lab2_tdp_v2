@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../kopt/kopt.h"
 #include "../grafo/grafo.h"
 #include "../camino/camino.h"

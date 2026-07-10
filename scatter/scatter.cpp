@@ -1,113 +1,195 @@
 #include "scatter.h"
 #include <algorithm>
+#include <climits>
+#include <string>
 
 using namespace std;
 
-Scatter::Scatter(): grafo(nullptr), rng(std::random_device{}()) {}
+Scatter::Scatter()
+    : grafo(nullptr), rng(std::random_device{}()), grasp(),
+      maxNodosInsertar(3), umbralDensidad(0.6), grafoEsDenso(false), modo(MEJOR) {}
 
-Scatter::Scatter(const Grafo& grafo): grafo(&grafo), rng(std::random_device{}()) {}
-
-size_t Scatter::VectorIntHash::operator()(const vector<int>& v) const {
-    size_t seed = v.size();
-    for (int x : v) {
-        seed ^= std::hash<int>{}(x) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    }
-    return seed;
+Scatter::Scatter(const Grafo& grafo, int maxNodosInsertar,
+                 double umbralDensidad, ModoInsercion modo)
+    : grafo(&grafo), rng(std::random_device{}()), grasp(grafo),
+      maxNodosInsertar(maxNodosInsertar), umbralDensidad(umbralDensidad),
+      modo(modo) {
+    grafoEsDenso = densidadGrafo() >= umbralDensidad;
 }
 
-pair<vector<int>, vector<int>> Scatter::clavePar(const Camino& a, const Camino& b) {
-    const vector<int>& va = a.getCamino();
-    const vector<int>& vb = b.getCamino();
-    return (va < vb) ? make_pair(va, vb) : make_pair(vb, va);
+double Scatter::densidadGrafo() const {
+    int n = grafo->getCantVert();
+    if (n <= 1) return 0.0;
+    long m = 0;
+    for (int v = 0; v < n; ++v) m += (long)grafo->getVecinos(v).size();
+    return (double)m / ((double)n * (n - 1));
 }
 
-size_t Scatter::ParHash::operator()(const pair<vector<int>, vector<int>>& par) const {
-    VectorIntHash h;
-    return h(par.first) ^ (h(par.second) << 1);
-}
+// ---------------------------------------------------------------------------
+// resolver: busqueda dispersa (scatter search)
+// ---------------------------------------------------------------------------
 
 Camino Scatter::resolver(int maxIter) {
-    Kopt koptSolver(*grafo);
-    const int TAM_REFSET = 10;
-    const int N_GEN = 30;                  // se generan pocas soluciones...
-    const int N_REFINAR = 2 * TAM_REFSET;  // ...y se refina solo el mejor tramo
+    vector<Camino> poblacion = grasp.generarPoblacion(TAM_POBLACION);
+    vector<Camino> refSet = seleccionarRefSet(poblacion, TAM_REFSET);
 
-    vector<Camino> soluciones = generarSoluciones(N_GEN);
+    for (int iter = 0; iter < maxIter; ++iter) {
+        vector<Camino> candidatos = refSet; // refSet actual sobrevive a la seleccion
 
-    // Ordenar por beneficio CRUDO y refinar con 2-OPT (first-improvement) solo
-    // las N_REFINAR mejores, no las N_GEN: refinar es lo caro. Se refina el
-    // doble del refSet como colchon, porque una solucion mediocre en crudo
-    // puede escalar al refinarla.
-    sort(soluciones.begin(), soluciones.end(), greater<Camino>());
-    size_t lim = min((size_t)N_REFINAR, soluciones.size());
-    for (size_t i = 0; i < lim; ++i) {
-        soluciones[i] = koptSolver.resolver(soluciones[i], true, 2);
-    }
-    sort(soluciones.begin(), soluciones.begin() + lim, greater<Camino>());
-
-    // obtenemos los 10 mejores (ya refinados) o la lista completa si hay menos
-    vector<Camino> refSet(soluciones.begin(),
-                           soluciones.begin() + min((size_t)TAM_REFSET, soluciones.size()));
-
-    unordered_set<pair<vector<int>, vector<int>>, ParHash> usados;
-
-    int iter = 0;
-    while (iter < maxIter) {
-
-        // Subset generation
-        vector<pair<Camino, Camino>> pares;
         for (size_t i = 0; i < refSet.size(); ++i) {
             for (size_t j = i + 1; j < refSet.size(); ++j) {
-                // si find no encuentra nada llega hasta el final de el set usados
-                if (usados.find(clavePar(refSet[i], refSet[j])) == usados.end()) {
-                    pares.push_back({refSet[i], refSet[j]});
+                candidatos.push_back(refinar(combinar(refSet[i], refSet[j])));
+            }
+        }
+
+        vector<Camino> nuevo = seleccionarRefSet(candidatos, TAM_REFSET);
+        if (mismosRefSet(nuevo, refSet)) break; // refSet estable -> converge
+        refSet = nuevo;
+    }
+
+    // seleccionarRefSet deja el mejor primero.
+    return refSet.front();
+}
+
+// ---------------------------------------------------------------------------
+// Combinacion
+// ---------------------------------------------------------------------------
+
+Camino Scatter::combinar(const Camino& C1, const Camino& C2) const {
+    if (!grafoEsDenso)
+        return empalme(C1, C2);
+
+    // Grafo denso: injerta subcadenas de un padre en el otro (trae nodos nuevos).
+    const vector<int>& v1 = C1.getCamino();
+    const vector<int>& v2 = C2.getCamino();
+    const bool mejor = (modo == MEJOR);
+
+    Camino best = (C1.getBeneficioTotal() >= C2.getBeneficioTotal()) ? C1 : C2;
+
+    auto probar = [&](const vector<int>& base, const vector<int>& donante) {
+        auto [resultado, ok] = insertarSubcadena(base, donante, mejor);
+        if (!ok) return;
+        Camino c(resultado, *grafo);
+        if (c.getPesoTotal() <= grafo->getMaxW() &&
+            c.getBeneficioTotal() > best.getBeneficioTotal())
+            best = c;
+    };
+    probar(v1, v2);
+    probar(v2, v1);
+
+    return best;
+}
+
+pair<vector<int>, bool> Scatter::insertarSubcadena(const vector<int>& base,
+                                                   const vector<int>& donante,
+                                                   bool mejorFactible) const {
+    const int maxW = grafo->getMaxW();
+    unordered_set<int> enBase(base.begin(), base.end());
+
+    int pesoBase = 0;
+    for (size_t i = 0; i + 1 < base.size(); ++i)
+        pesoBase += grafo->getPeso(base[i], base[i + 1]);
+
+    bool encontrado = false;
+    int mejorGanancia = INT_MIN;
+    vector<int> mejorResultado;
+
+    // Subcadenas contiguas de nodos interiores del donante (sus aristas internas
+    // ya existen en el grafo). Largo 1..maxNodosInsertar.
+    for (size_t p = 1; p + 1 < donante.size(); ++p) {
+        int pesoInterno = 0;
+        int beneficioInterno = 0;
+
+        for (int L = 1; L <= maxNodosInsertar && p + L - 1 < donante.size() - 1; ++L) {
+            int w1 = donante[p];
+            int wk = donante[p + L - 1];
+
+            if (enBase.count(wk)) break; // la subcadena repetiria un nodo de base
+            if (L >= 2) { // acumula la arista wk-1 -> wk (contigua en donante)
+                pesoInterno += grafo->getPeso(donante[p + L - 2], wk);
+                beneficioInterno += grafo->getBeneficio(donante[p + L - 2], wk);
+            }
+
+            // Probar cada hueco (a,b) de base.
+            for (size_t i = 0; i + 1 < base.size(); ++i) {
+                int a = base[i];
+                int b = base[i + 1];
+                if (!grafo->existeArista(a, w1) || !grafo->existeArista(wk, b))
+                    continue;
+
+                int pesoNuevo = pesoBase - grafo->getPeso(a, b)
+                              + grafo->getPeso(a, w1) + pesoInterno + grafo->getPeso(wk, b);
+                if (pesoNuevo > maxW) continue;
+
+                int ganancia = -grafo->getBeneficio(a, b)
+                             + grafo->getBeneficio(a, w1) + beneficioInterno
+                             + grafo->getBeneficio(wk, b);
+
+                vector<int> resultado(base.begin(), base.begin() + i + 1);
+                resultado.insert(resultado.end(), donante.begin() + p, donante.begin() + p + L);
+                resultado.insert(resultado.end(), base.begin() + i + 1, base.end());
+
+                if (!mejorFactible)
+                    return {resultado, true};
+
+                if (ganancia > mejorGanancia) {
+                    mejorGanancia = ganancia;
+                    mejorResultado = move(resultado);
+                    encontrado = true;
                 }
             }
         }
-
-        if (pares.empty()) {
-            // reconstruir : conservar solo el mejor, regenerar el resto
-            // max_element retorna un iterador a un elemento del set
-            Camino mejor = *max_element(refSet.begin(), refSet.end());
-
-            vector<Camino> nuevas = generarSoluciones(TAM_REFSET - 1);
-            for (Camino& c : nuevas) {
-                c = koptSolver.resolver(c, true, 2);
-            }
-
-            refSet.clear();
-            refSet.push_back(mejor);
-            refSet.insert(refSet.end(), nuevas.begin(), nuevas.end());
-
-            usados.clear(); // RefSet es enteramente nuevo
-        } else {
-            //
-            vector<Camino> pool;
-            for (auto& par : pares) {
-                Camino nuevo = combinar(par.first, par.second);
-                nuevo = koptSolver.resolver(nuevo, true, 2);
-                pool.push_back(nuevo);
-                usados.insert(clavePar(par.first, par.second));
-            }
-
-            // Reference set update
-            vector<Camino> todos = refSet;
-            todos.insert(todos.end(), pool.begin(), pool.end());
-            sort(todos.begin(), todos.end(), greater<Camino>());
-            todos.resize(min(todos.size(), (size_t)TAM_REFSET));
-            refSet = todos;
-        }
-
-        iter++;
     }
 
-    return *max_element(refSet.begin(), refSet.end());
+    if (encontrado) return {mejorResultado, true};
+    return {{}, false};
+}
+
+Camino Scatter::empalme(const Camino& C1, const Camino& C2) const {
+    const vector<int>& v1 = C1.getCamino();
+    const vector<int>& v2 = C2.getCamino();
+
+    // Opcion A: primera mitad de C1 + segunda mitad de C2
+    auto [caminoA, validoA] = intentarUnion(v1, v2);
+    if (validoA) return Camino(caminoA, *grafo);
+
+    // Opcion B: primera mitad de C2 + segunda mitad de C1
+    auto [caminoB, validoB] = intentarUnion(v2, v1);
+    if (validoB) return Camino(caminoB, *grafo);
+
+    // Ninguna combinacion fue factible: se retorna el mejor padre.
+    return (C1.getBeneficioTotal() >= C2.getBeneficioTotal()) ? C1 : C2;
+}
+
+pair<vector<int>, bool> Scatter::intentarUnion(const vector<int>& primera,
+                                               const vector<int>& segunda) const {
+    size_t corte1 = primera.size() / 2;
+    size_t corte2 = segunda.size() / 2;
+
+    vector<int> mitad1(primera.begin(), primera.begin() + corte1);
+    vector<int> mitad2(segunda.begin() + corte2, segunda.end());
+
+    if (mitad1.empty() || mitad2.empty()) return {{}, false};
+
+    // Punto de union debe existir como arista real del grafo.
+    if (!grafo->existeArista(mitad1.back(), mitad2.front())) return {{}, false};
+
+    // Ninguna mitad puede repetir nodos de la otra.
+    if (!sinDuplicados(mitad1, mitad2)) return {{}, false};
+
+    vector<int> resultado = mitad1;
+    resultado.insert(resultado.end(), mitad2.begin(), mitad2.end());
+
+    double pesoTotal = 0.0;
+    for (size_t i = 0; i + 1 < resultado.size(); ++i)
+        pesoTotal += grafo->getPeso(resultado[i], resultado[i + 1]);
+    if (pesoTotal > grafo->getMaxW()) return {{}, false};
+
+    return {resultado, true};
 }
 
 bool Scatter::sinDuplicados(const vector<int>& mitad1,
-                             const vector<int>& mitad2) const {
-    
-    // busqueda de duplicados en o(n)
+                            const vector<int>& mitad2) const {
     unordered_set<int> vistos(mitad1.begin(), mitad1.end());
     for (int nodo : mitad2) {
         if (vistos.count(nodo)) return false;
@@ -116,144 +198,36 @@ bool Scatter::sinDuplicados(const vector<int>& mitad1,
     return true;
 }
 
-pair<vector<int>, bool> Scatter::intentarUnion(const vector<int>& primera,
-                                                const vector<int>& segunda) const {
-    size_t corte1 = primera.size() / 2;
-    size_t corte2 = segunda.size() / 2;
-
-    vector<int> mitad1(primera.begin(), primera.begin() + corte1);
-    vector<int> mitad2(segunda.begin() + corte2, segunda.end());
-
-    if (mitad1.empty() || mitad2.empty()) {
-        return {{}, false};
-    }
-
-    // Punto de unión debe existir como arista real del grafo
-    if (!grafo->existeArista(mitad1.back(), mitad2.front())) {
-        return {{}, false};
-    }
-
-    // ninguna mitad puede repetir nodos de la otra
-    if (!sinDuplicados(mitad1, mitad2)) {
-        return {{}, false};
-    }
-
-    vector<int> resultado = mitad1;
-    resultado.insert(resultado.end(), mitad2.begin(), mitad2.end());
-
-    double pesoTotal = 0.0;
-    for (size_t i = 0; i + 1 < resultado.size(); ++i) {
-        pesoTotal += grafo->getPeso(resultado[i], resultado[i + 1]);
-    }
-    if (pesoTotal > grafo->getMaxW()) {
-        return {{}, false};
-    }
-
-    return {resultado, true};
+Camino Scatter::refinar(const Camino& solucion) const {
+    Kopt kopt(*grafo);
+    return kopt.resolver(solucion, true, 2);
 }
 
-Camino Scatter::combinar(const Camino& C1, const Camino& C2) const {
-    const vector<int>& v1 = C1.getCamino();
-    const vector<int>& v2 = C2.getCamino();
+// ---------------------------------------------------------------------------
+// RefSet
+// ---------------------------------------------------------------------------
 
-    // Opción A: primera mitad de C1 + segunda mitad de C2
-    auto [caminoA, validoA] = intentarUnion(v1, v2);
-    if (validoA) {
-        return Camino(caminoA, *grafo);
+vector<Camino> Scatter::seleccionarRefSet(vector<Camino> candidatos, int b) const {
+    // Ordena por beneficio descendente.
+    sort(candidatos.begin(), candidatos.end(),
+         [](const Camino& x, const Camino& y) {
+             return x.getBeneficioTotal() > y.getBeneficioTotal();
+         });
+
+    vector<Camino> refSet;
+    unordered_set<string> vistos; // firma del camino, para deduplicar
+    for (const Camino& c : candidatos) {
+        if ((int)refSet.size() >= b) break;
+        string firma;
+        for (int nodo : c.getCamino()) { firma += to_string(nodo); firma += ','; }
+        if (vistos.insert(firma).second) refSet.push_back(c);
     }
-
-    // Opción B: primera mitad de C2 + segunda mitad de C1
-    auto [caminoB, validoB] = intentarUnion(v2, v1);
-    if (validoB) {
-        return Camino(caminoB, *grafo);
-    }
-
-    // Ninguna combinación fue factible: se retorna el mejor padre
-    return (C1.getBeneficioTotal() >= C2.getBeneficioTotal()) ? C1 : C2;
+    return refSet;
 }
 
-
-Camino Scatter::construccionAleatoria() {
-    int vIni = 0;
-    int vFin = grafo->getIdNodoFinal();
-
-    vector<int> camino = grafo->dijkstraCamino(vIni, vFin);
-
-    double pesoActual = 0.0;
-    for (size_t i = 0; i + 1 < camino.size(); ++i) {
-        pesoActual += grafo->getPeso(camino[i], camino[i + 1]);
-    }
-
-    // Largo objetivo aleatorio: da diversidad de tamanos entre soluciones y
-    // evita construir caminos de casi N nodos (que hacen carisimo al 2-OPT
-    // posterior, cuya vecindad crece cuadraticamente con el largo).
-    uniform_int_distribution<int> distLargo((int)camino.size(), grafo->getCantVert());
-    int largoObjetivo = distLargo(rng);
-
-    const double ALPHA = 0.3; // fraccion superior de candidatos que forma la RCL
-
-    while ((int)camino.size() < largoObjetivo) {
-        vector<CandidatoInsercion> candidatos = generarCandidatos(camino, pesoActual);
-        if (candidatos.empty()) break;
-
-        // RCL (estilo GRASP): se ordena por eficiencia (beneficio/peso) y se
-        // elige al azar dentro del tramo superior. Mezcla intensificacion
-        // (candidatos buenos) con diversificacion (eleccion aleatoria).
-        sort(candidatos.begin(), candidatos.end(),
-             [](const CandidatoInsercion& a, const CandidatoInsercion& b) {
-                 return a.eficiencia > b.eficiencia;
-             });
-        size_t tamRcl = max((size_t)1, (size_t)(ALPHA * candidatos.size()));
-        uniform_int_distribution<size_t> distIdx(0, tamRcl - 1);
-        const CandidatoInsercion& elegido = candidatos[distIdx(rng)];
-
-        camino.insert(camino.begin() + elegido.posicion + 1, elegido.nodo);
-        pesoActual += elegido.deltaPeso;
-    }
-
-    return Camino(camino, *grafo);
+bool Scatter::mismosRefSet(const vector<Camino>& a, const vector<Camino>& b) const {
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i)
+        if (a[i].getCamino() != b[i].getCamino()) return false;
+    return true;
 }
-
-vector<Camino> Scatter::generarSolucionesAleatorias(int n){
-    vector<Camino> soluciones;
-    soluciones.reserve(n);
-    for (int i = 0; i < n; ++i) {
-        soluciones.push_back(construccionAleatoria());
-    }
-    return soluciones;
-}
-
-vector<Scatter::CandidatoInsercion> Scatter::generarCandidatos(const vector<int>& camino,
-                                                                 double pesoActual) const {
-    vector<CandidatoInsercion> candidatos;
-    unordered_set<int> enCamino(camino.begin(), camino.end());
-
-    for (size_t pos = 0; pos + 1 < camino.size(); ++pos) {
-        int a = camino[pos];
-        int b = camino[pos + 1];
-
-        for (const Nodo& vecino : grafo->getVecinos(a)) {
-            int u = vecino.destino;
-            if (enCamino.count(u)) continue;
-            if (!grafo->existeArista(u, b)) continue;
-
-            double deltaPeso = grafo->getPeso(a, u) + grafo->getPeso(u, b)
-                                - grafo->getPeso(a, b);
-            if (pesoActual + deltaPeso > grafo->getMaxW()) continue;
-
-            double deltaBeneficio = grafo->getBeneficio(a, u) + grafo->getBeneficio(u, b)
-                                     - grafo->getBeneficio(a, b);
-
-            double eficiencia = (deltaPeso > 0.0)
-                                 ? (deltaBeneficio / deltaPeso)
-                                 : deltaBeneficio;
-
-            candidatos.push_back({u, pos, deltaBeneficio, deltaPeso, eficiencia});
-        }
-    }
-    return candidatos;
-}
-
- vector<Camino> Scatter::generarSoluciones(int n){
-    return generarSolucionesAleatorias(n);
- }

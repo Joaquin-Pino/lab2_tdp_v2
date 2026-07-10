@@ -15,6 +15,8 @@ private:
     int calcularBeneficioTotal(); // implementar si es necesario
     void calcularYAsignarPesoYBeneficio();
 
+    void eliminarUltimo();
+
 public:
     Camino();
     Camino(std::vector<int> camino, const Grafo& grafo);
@@ -35,15 +37,20 @@ public:
     //todo: implementar correctamente
     bool verificarCamino(int wMax); // verifica si camino es valido
 
-    void agregarNodo(int id);
-    void eliminarNodo(int id);
+    bool agregarNodo(int id);
+
+    // Elimina un nodo interior y lo reemplaza por la arista puente entre sus
+    // vecinos, actualizando peso y beneficio. Devuelve false (sin tocar el
+    // camino) si el nodo no esta, si es un extremo, o si sus vecinos no quedan
+    // unidos por una arista del grafo.
+    bool eliminarNodo(int id);
 
     int getUltimoNodo();
 
     bool esCaminoCompleto();
     float getRatioNodo(int id);
     void reemplazarNodo(int oldId, int newId);
-    std::vector<int> getCamino() const;
+    const std::vector<int>& getCamino() const;
 
     int getPosicionNodo(int idNodo);
 

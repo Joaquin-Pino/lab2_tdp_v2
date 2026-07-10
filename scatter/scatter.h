@@ -1,59 +1,88 @@
+#pragma once
+
 #include "../grafo/grafo.h"
 #include "../camino/camino.h"
 #include "../kopt/kopt.h"
+#include "../grasp/grasp.h"
 #include <vector>
 #include <random>
+#include <unordered_set>
+#include <utility>
 
 class Scatter {
+public:
+    // Operador de insercion de subcadena: MEJOR = best-improvement (evalua toda
+    // la vecindad y aplica el injerto de mayor beneficio), PRIMERA = first-fit
+    // (aplica el primer injerto factible). Se elige por parametro del ctor.
+    enum ModoInsercion { MEJOR, PRIMERA };
+
+
+    Scatter();
+    // umbralDensidad = 0.6: en un grafo no dirigido cada arista suma 2 al total
+    // de grados, asi que la densidad duplica a la del mismo conjunto de aristas
+    // leido como dirigido. El 0.6 conserva la clasificacion denso/disperso que
+    // daba el 0.3 sobre la densidad dirigida.
+    Scatter(const Grafo& grafo, int maxNodosInsertar = 3,
+            double umbralDensidad = 0.6, ModoInsercion modo = MEJOR);
+
+    Camino resolver(int maxIter);
+    Camino combinar(const Camino& C1, const Camino& C2) const;
+
 private:
     const Grafo* grafo;
-
-    std::vector<Camino> generarSoluciones(int n);
-
     std::mt19937 rng;
+    Grasp grasp; // construccion GRASP: arma la poblacion inicial (ver generarPoblacion)
 
-    // Verifica que dos secuencias de nodos no comparten ningún nodo entre sí
-    bool sinDuplicados(const std::vector<int>& mitad1,
-                        const std::vector<int>& mitad2) const;
+    int maxNodosInsertar;      // largo maximo de la subcadena a injertar
+    double umbralDensidad;     // frontera denso/disperso sobre 2M/(N(N-1))
+    bool grafoEsDenso;         // decidido una vez en el ctor
+    ModoInsercion modo; // variante de insertarSubcadena a usar
 
-    // Intenta construir un camino uniendo la primera mitad de 'primera' con
-    // la segunda mitad de 'segunda'. Retorna (camino, es_valido).
+    // Tamanos de la busqueda dispersa (calibrables).
+    static constexpr int TAM_POBLACION = 30;
+    static constexpr int TAM_REFSET = 10;
+
+    // Densidad del grafo no dirigido: suma de grados / pares ordenados posibles,
+    // o sea 2M / (N(N-1)), con M = cantidad de aristas no dirigidas. Vale 1 en
+    // el grafo completo.
+    double densidadGrafo() const;
+
+    // --- Combinacion ------------------------------------------------------
+
+    // Injerta una subcadena de 'donante' (hasta maxNodosInsertar nodos nuevos)
+    // en 'base', entre un par (a,b) con aristas a->w1 y wk->b, sin repetir nodos
+    // y dentro de presupuesto. mejorFactible elige best- vs first-improvement.
+    // Devuelve (camino resultante, hubo injerto).
+    std::pair<std::vector<int>, bool> insertarSubcadena(
+        const std::vector<int>& base,
+        const std::vector<int>& donante,
+        bool mejorFactible) const;
+
+    // Empalme (operador para grafos dispersos): primera mitad de C1 + segunda
+    // mitad de C2 (o al reves). Solo necesita 1 arista en la union.
+    Camino empalme(const Camino& C1, const Camino& C2) const;
+
+    // Une la primera mitad de 'primera' con la segunda mitad de 'segunda' si el
+    // empalme existe como arista, no repite nodos y respeta el peso. (camino, ok).
     std::pair<std::vector<int>, bool> intentarUnion(
         const std::vector<int>& primera,
         const std::vector<int>& segunda) const;
 
-    Camino construccionAleatoria();
+    bool sinDuplicados(const std::vector<int>& mitad1,
+                       const std::vector<int>& mitad2) const;
 
-    struct CandidatoInsercion {
-        int nodo;
-        size_t posicion;       // se inserta entre camino[posicion] y camino[posicion+1]
-        double deltaBeneficio;
-        double deltaPeso;
-        double eficiencia;
-    };
-    
-    std::vector<CandidatoInsercion> generarCandidatos(const std::vector<int>& camino, double pesoActual) const;
+    // Refina una solucion con 2-opt (reordena para liberar peso). El agregado
+    // de nodos ya lo hace la combinacion.
+    Camino refinar(const Camino& solucion) const;
 
-    std::vector<Camino> generarSolucionesAleatorias(int n);
+    // --- RefSet -----------------------------------------------------------
 
-    // Hash de un vector<int>, usado para identificar caminos en refSet/usados
-    struct VectorIntHash {
-        size_t operator()(const std::vector<int>& v) const;
-    };
+    // Deduplica por camino y devuelve los b de mayor beneficio.
+    std::vector<Camino> seleccionarRefSet(std::vector<Camino> candidatos, int b) const;
 
-    // Hash de un par de caminos (por su secuencia de nodos)
-    struct ParHash {
-        size_t operator()(const std::pair<std::vector<int>, std::vector<int>>& par) const;
-    };
+    // True si dos refSet (ya ordenados por seleccionarRefSet) son iguales.
+    bool mismosRefSet(const std::vector<Camino>& a,
+                      const std::vector<Camino>& b) const;
 
-    // Clave de un par de caminos, sin importar el orden en que se pasen
-    static std::pair<std::vector<int>, std::vector<int>> clavePar(const Camino& a, const Camino& b);
 
-public:
-
-    Scatter();
-    Scatter(const Grafo& grafo);
-
-    Camino resolver(int maxIter);
-    Camino combinar(const Camino& C1, const Camino& C2) const;
 };
