@@ -1,4 +1,6 @@
 #include "branchAndBound.h"
+#include <chrono>
+#include <iostream>
 
 #include <climits>
 #include <algorithm>
@@ -27,6 +29,16 @@ void SolverBranchAndBound::precomputarCotas() {
     }
     totalBenefEntrada = 0;
     for (int b : maxBenefEntrada) totalBenefEntrada += b;
+
+    // Vecinos por nodo ordenados de mayor a menor beneficio: al expandirlos en
+    // ese orden el dfs encuentra caminos buenos antes, sube mejorBeneficio y la
+    // poda por cota superior corta mas ramas. Se ordena una sola vez.
+    vecinosOrdenados.assign(n, {});
+    for (int u = 0; u < n; u++) {
+        vecinosOrdenados[u] = grafo->getVecinos(u);
+        sort(vecinosOrdenados[u].begin(), vecinosOrdenados[u].end(),
+             [](const Nodo& a, const Nodo& b) { return a.beneficio > b.beneficio; });
+    }
 }
 
 bool SolverBranchAndBound::asegurarCompleto(Camino& c) const {
@@ -99,7 +111,7 @@ void SolverBranchAndBound::dfs(int actual, int pesoAcum, int beneficioAcum,
     // supera el mejor conocido.
     if (beneficioAcum + beneficioRestante <= mejorBeneficio) return;
 
-    for (const Nodo& arista : grafo->getVecinos(actual)) {
+    for (const Nodo& arista : vecinosOrdenados[actual]) {
         int v = arista.destino;
         if (enCamino[v]) continue;
         if (distInv[v] == INT_MAX) continue;                 // v no alcanza al destino
@@ -122,12 +134,16 @@ Camino SolverBranchAndBound::resolver() {
     int origen = grafo->getIdNodoInicial();
     int n = grafo->getCantVert();
 
+    auto _t0 = std::chrono::high_resolution_clock::now();
     distInv = grafo->dijkstraInvertido(destino);
+    auto _t1 = std::chrono::high_resolution_clock::now();
 
     // 1) cota inferior con las heuristicas
     mejorCamino.clear();
     mejorBeneficio = 0;
     calcularCotaInferior();
+    auto _t2 = std::chrono::high_resolution_clock::now();
+    long benefTrasCota = mejorBeneficio;
 
     iteraciones = 0;
 
@@ -140,6 +156,11 @@ Camino SolverBranchAndBound::resolver() {
         dfs(origen, 0, 0, totalBenefEntrada - maxBenefEntrada[origen],
             prof, caminoActual, enCamino);
     }
+    auto _t3 = std::chrono::high_resolution_clock::now();
+    auto ms = [](auto a, auto b){ return std::chrono::duration<double,std::milli>(b-a).count(); };
+    std::cerr << "[PROF] dijkstraInv=" << ms(_t0,_t1) << "ms  cotaInferior=" << ms(_t1,_t2)
+              << "ms (benef=" << benefTrasCota << ")  dfs=" << ms(_t2,_t3)
+              << "ms (iter=" << iteraciones << ", benefFinal=" << mejorBeneficio << ")\n";
 
     return Camino(mejorCamino, *grafo);
 }

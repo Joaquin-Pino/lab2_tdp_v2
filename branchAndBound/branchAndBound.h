@@ -42,6 +42,10 @@ private:
     std::vector<int> maxBenefEntrada;  // mejor beneficio de arista entrante por nodo
     long totalBenefEntrada;            // suma de maxBenefEntrada (cota superior global)
 
+    // Adyacencia con los vecinos ordenados por beneficio descendente: el dfs los
+    // expande en ese orden para subir el incumbente antes y podar mas ramas.
+    std::vector<std::vector<Nodo>> vecinosOrdenados;
+
     // mejor solucion conocida (incumbente / cota inferior)
     std::vector<int> mejorCamino;
     int mejorBeneficio;

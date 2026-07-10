@@ -10,8 +10,8 @@ int SolverGreedy::obtenerMejorNodo(int nodoActual, int pesoDisponible, const Cam
     float maxBeneficio = -1.0f;
     int mejorNodoId = -1;
 
-    vector<Nodo> vecinos = grafo->getVecinos(nodoActual);
-    for (Nodo nodo : vecinos){
+    const vector<Nodo>& vecinos = grafo->getVecinos(nodoActual);
+    for (const Nodo& nodo : vecinos){
         if (sol.nodoFueVisitado(nodo.destino)) continue;
         if (nodo.costo > pesoDisponible) continue;
 

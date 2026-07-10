@@ -31,12 +31,9 @@ bool Camino::agregarNodo(int id){
 
     if (!camino.empty()){
         int idUltimoNodo = camino.back();
-        for (const Nodo& n : grafo->getVecinos(idUltimoNodo)){
-            if (n.destino == id){
-                pesoTotal += n.costo;
-                beneficioTotal += n.beneficio;
-                break;
-            }
+        if (grafo->existeArista(idUltimoNodo, id)) {
+            pesoTotal      += grafo->getPeso(idUltimoNodo, id);
+            beneficioTotal += grafo->getBeneficio(idUltimoNodo, id);
         }
     }
 
@@ -121,7 +118,7 @@ int Camino::getUltimoNodo(){
     return camino[camino.size() -1];
 }
 
-vector<int> Camino::getCamino() const{
+const vector<int>& Camino::getCamino() const{
     return camino;
 }
 
