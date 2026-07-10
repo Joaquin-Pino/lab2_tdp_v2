@@ -6,6 +6,7 @@
 #include "../camino/camino.h"
 #include "../solverGreedy/solverGreedy.h"
 #include "../scatter/scatter.h"
+#include "../grasp/grasp.h"
 
 // SolverBranchAndBound: el "mejor algoritmo" y orquestador.
 //
@@ -27,12 +28,18 @@
 class SolverBranchAndBound {
 private:
     // Umbral de tamano (nro de vertices) para elegir la heuristica de cota
-    // inferior: por debajo se usa Scatter (cota ajustada); por encima solo el
-    // goloso, porque el 2-opt de Scatter escala ~O(L^2..L^3) en el largo del
-    // camino y en grafos grandes (caminos largos) se vuelve prohibitivo.
-    // Es calibrable; el driver real del costo es el largo del camino (que
-    // depende de W), no solo la cantidad de vertices.
-    static constexpr int UMBRAL_GRAFO_GRANDE = 2000;
+    // inferior. Por debajo se usa Scatter: da la cota mas ajustada y a este
+    // tamano es barato. Por encima se usa GRASP, que construye caminos largos
+    // que llenan el presupuesto casi tan bien como Scatter pero ~8x mas barato
+    // (el 2-opt de Scatter escala ~O(L^2..L^3) en el largo del camino y en
+    // grafos grandes se dispara). Es calibrable; el driver real del costo es el
+    // largo del camino (que depende de W), no solo la cantidad de vertices.
+    static constexpr int UMBRAL_SCATTER = 100;
+    // Construcciones GRASP (construir+refinar, se queda con la mejor) usadas
+    // como cota inferior en grafos por encima de UMBRAL_SCATTER. 20 equilibra
+    // calidad/tiempo: a 1000 vertices (caso de evaluacion) da ~97% del beneficio
+    // de Scatter en ~1/4 del tiempo, y con menos varianza que valores mas bajos.
+    static constexpr int ITER_GRASP_COTA = 20;
 
     const Grafo* grafo;
     long maxIteraciones;   // tope de expansiones de nodo

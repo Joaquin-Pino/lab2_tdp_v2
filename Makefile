@@ -1,5 +1,5 @@
 CXX      = g++
-CXXFLAGS = -std=c++20 -Wall -o3
+CXXFLAGS = -std=c++20 -Wall -O3
 
 GRAFO_SRC         = grafo/grafo.cpp
 CAMINO_SRC        = camino/camino.cpp

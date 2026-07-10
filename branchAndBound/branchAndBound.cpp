@@ -1,6 +1,4 @@
 #include "branchAndBound.h"
-#include <chrono>
-#include <iostream>
 
 #include <climits>
 #include <algorithm>
@@ -68,12 +66,16 @@ Camino SolverBranchAndBound::calcularCotaInferior() {
     SolverGreedy greedy(*grafo);
     evaluarCandidato(greedy.resolver());
 
-    // Solo en grafos chicos/medianos se paga Scatter, que da una cota mucho mas
-    // ajustada (combina soluciones) pero cuyo 2-opt se dispara con caminos
-    // largos. En grafos grandes nos quedamos con la cota del goloso.
-    if (grafo->getCantVert() <= UMBRAL_GRAFO_GRANDE) {
+    // En grafos chicos se paga Scatter, que da la cota mas ajustada (combina
+    // soluciones) y aca es barato. En grafos grandes su 2-opt se dispara con
+    // los caminos largos, asi que se usa GRASP: construye caminos que llenan el
+    // presupuesto con ~95% del beneficio de Scatter a una fraccion del costo.
+    if (grafo->getCantVert() <= UMBRAL_SCATTER) {
         Scatter scatter(*grafo);
         evaluarCandidato(scatter.resolver(5));
+    } else {
+        Grasp grasp(*grafo);
+        evaluarCandidato(grasp.resolver(ITER_GRASP_COTA));
     }
 
     // Red de seguridad: si ninguna heuristica dio un camino completo, usar el
@@ -134,16 +136,12 @@ Camino SolverBranchAndBound::resolver() {
     int origen = grafo->getIdNodoInicial();
     int n = grafo->getCantVert();
 
-    auto _t0 = std::chrono::high_resolution_clock::now();
     distInv = grafo->dijkstraInvertido(destino);
-    auto _t1 = std::chrono::high_resolution_clock::now();
 
     // 1) cota inferior con las heuristicas
     mejorCamino.clear();
     mejorBeneficio = 0;
     calcularCotaInferior();
-    auto _t2 = std::chrono::high_resolution_clock::now();
-    long benefTrasCota = mejorBeneficio;
 
     iteraciones = 0;
 
@@ -156,11 +154,6 @@ Camino SolverBranchAndBound::resolver() {
         dfs(origen, 0, 0, totalBenefEntrada - maxBenefEntrada[origen],
             prof, caminoActual, enCamino);
     }
-    auto _t3 = std::chrono::high_resolution_clock::now();
-    auto ms = [](auto a, auto b){ return std::chrono::duration<double,std::milli>(b-a).count(); };
-    std::cerr << "[PROF] dijkstraInv=" << ms(_t0,_t1) << "ms  cotaInferior=" << ms(_t1,_t2)
-              << "ms (benef=" << benefTrasCota << ")  dfs=" << ms(_t2,_t3)
-              << "ms (iter=" << iteraciones << ", benefFinal=" << mejorBeneficio << ")\n";
 
     return Camino(mejorCamino, *grafo);
 }

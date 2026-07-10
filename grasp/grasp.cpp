@@ -48,6 +48,11 @@ Camino Grasp::construir() {
     if (camino.back() != fin)
         camino = completarHastaDestino(camino, enCamino);
 
+    // Con el camino ya cerrado en el destino, insertar nodos de alto beneficio
+    // en los huecos mientras entren en el presupuesto. Clave cuando W no ata.
+    if (camino.back() == fin)
+        camino = rellenar(camino);
+
     Camino resultado(camino, *grafo);
     if (!camino.empty() && camino.back() == fin &&
         resultado.getPesoTotal() <= grafo->getMaxW())
@@ -108,7 +113,60 @@ vector<int> Grasp::completarHastaDestino(vector<int> camino,
     }
 }
 
+vector<int> Grasp::rellenar(vector<int> camino) const {
+    const int W = grafo->getMaxW();
+    unordered_set<int> enCamino(camino.begin(), camino.end());
+
+    int peso = 0;
+    for (size_t i = 0; i + 1 < camino.size(); ++i)
+        peso += grafo->getPeso(camino[i], camino[i + 1]);
+
+    // Best-improvement repetido: en cada vuelta busca la insercion de mayor
+    // ganancia sobre todos los huecos y la aplica; corta cuando ninguna mejora.
+    bool mejora = true;
+    while (mejora) {
+        mejora = false;
+        int mejorGanancia = 0, mejorNodo = -1, mejorPos = -1, mejorDeltaPeso = 0;
+
+        for (size_t i = 0; i + 1 < camino.size(); ++i) {
+            int a = camino[i], b = camino[i + 1];
+            int pesoAB  = grafo->getPeso(a, b);
+            int benefAB = grafo->getBeneficio(a, b);
+
+            // candidatos: vecinos de a que tambien lo sean de b (para armar
+            // a-x-b) y que no esten ya en el camino.
+            for (const Nodo& vecino : grafo->getVecinos(a)) {
+                int x = vecino.destino;
+                if (enCamino.count(x)) continue;
+                if (!grafo->existeArista(x, b)) continue;
+
+                int deltaPeso = vecino.costo + grafo->getPeso(x, b) - pesoAB;
+                if (peso + deltaPeso > W) continue; // no entra en el presupuesto
+
+                int ganancia = vecino.beneficio + grafo->getBeneficio(x, b) - benefAB;
+                if (ganancia > mejorGanancia) {
+                    mejorGanancia = ganancia;
+                    mejorNodo = x;
+                    mejorPos = (int)i;
+                    mejorDeltaPeso = deltaPeso;
+                }
+            }
+        }
+
+        if (mejorNodo >= 0) {
+            camino.insert(camino.begin() + mejorPos + 1, mejorNodo);
+            enCamino.insert(mejorNodo);
+            peso += mejorDeltaPeso;
+            mejora = true;
+        }
+    }
+    return camino;
+}
+
 Camino Grasp::refinar(const Camino& solucion) const {
+    // En grafos grandes el 2-opt sobre caminos largos cuesta segundos por
+    // construccion y casi no mejora frente a lo que ya deja rellenar(); se omite.
+    if (grafo->getCantVert() > UMBRAL_REFINE) return solucion;
     Kopt kopt(*grafo);
     return kopt.resolver(solucion, true, 2);
 }

@@ -49,6 +49,10 @@ private:
 
     std::vector<int> distInv; // dijkstraInvertido(destino): min costo v->destino
 
+    // Por encima de este tamano refinar() omite el 2-opt: sobre caminos largos
+    // es O(L^2) por pasada y no mejora lo que ya aporta rellenar() en construir().
+    static constexpr int UMBRAL_REFINE = 500;
+
     struct CandidatoExtension {
         int nodo;
         int costo;
@@ -66,6 +70,13 @@ private:
     // reutilizar nodos (retrocede el tramo extendido si hiciera falta).
     std::vector<int> completarHastaDestino(std::vector<int> camino,
                                            std::unordered_set<int> enCamino) const;
+
+    // Insercion codiciosa de nodos: mientras exista un nodo no visitado x y un
+    // hueco (a,b) del camino tal que reemplazar la arista a-b por a-x-b aumente
+    // el beneficio sin pasarse de W, inserta el de mayor ganancia. Conserva los
+    // extremos. En instancias donde el peso no ata (W grande) es lo que llena el
+    // camino de nodos de alto beneficio; el 2-opt no puede porque no agrega nodos.
+    std::vector<int> rellenar(std::vector<int> camino) const;
 
     // Refina una solucion con 2-opt (Kopt, first-improvement, k=2).
     Camino refinar(const Camino& solucion) const;
