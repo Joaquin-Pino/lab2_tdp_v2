@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <unordered_set>
+#include <random>
 #include "scatter.h"
 
 using namespace std;
@@ -37,7 +38,8 @@ public:
         Camino c1(vector<int>{0, 1, 2, 5}, g);
         Camino c2(vector<int>{0, 3, 4, 5}, g);
 
-        Scatter scatter(g);
+        std::mt19937 rng(1);
+        Scatter scatter(g, rng);
         Camino resultado = scatter.combinar(c1, c2);
 
         assert((resultado.getCamino() == vector<int>{0, 1, 4, 5}));
@@ -66,7 +68,8 @@ public:
         Camino c1(vector<int>{0, 1, 2, 5}, g);
         Camino c2(vector<int>{0, 3, 4, 5}, g);
 
-        Scatter scatter(g);
+        std::mt19937 rng(1);
+        Scatter scatter(g, rng);
         Camino resultado = scatter.combinar(c1, c2);
 
         assert((resultado.getCamino() == vector<int>{0, 3, 2, 5}));
@@ -91,7 +94,8 @@ public:
         Camino c2(vector<int>{0, 3, 4, 5}, g);
         assert(c2.getBeneficioTotal() > c1.getBeneficioTotal());
 
-        Scatter scatter(g);
+        std::mt19937 rng(1);
+        Scatter scatter(g, rng);
         Camino resultado = scatter.combinar(c1, c2);
 
         assert(resultado.getCamino() == c2.getCamino());
@@ -114,7 +118,8 @@ public:
         Camino c1(vector<int>{0, 1, 2, 5}, g);
         Camino c2(vector<int>{0, 3, 4, 5}, g);
 
-        Scatter scatter(g);
+        std::mt19937 rng(1);
+        Scatter scatter(g, rng);
         Camino resultado = scatter.combinar(c1, c2);
 
         assert(resultado.getCamino() == c2.getCamino());
@@ -146,7 +151,8 @@ public:
         Camino c1(vector<int>{0, 1, 3}, g);
         Camino c2(vector<int>{0, 2, 3}, g);
 
-        Scatter scatter(g); // densidad 1.0 >= umbral 0.6 -> rama densa
+        std::mt19937 rng(1);
+        Scatter scatter(g, rng); // densidad 1.0 >= umbral 0.6 -> rama densa
         Camino resultado = scatter.combinar(c1, c2);
 
         assert((resultado.getCamino() == vector<int>{0, 1, 2, 3}));
@@ -171,7 +177,8 @@ public:
 
     static void test_resolverConCaminoUnicoDevuelveEseCamino() {
         Grafo g = crearGrafoLineal();
-        Scatter scatter(g);
+        std::mt19937 rng(1);
+        Scatter scatter(g, rng);
 
         Camino resultado = scatter.resolver(5);
 
@@ -188,7 +195,8 @@ public:
     // respetado.
     static void test_resolverSobreGrafoGrandeRespetaInvariantes() {
         Grafo g = Grafo::cargarDesdeArchivo("grafoGrande.txt");
-        Scatter scatter(g);
+        std::mt19937 rng(1);
+        Scatter scatter(g, rng);
 
         Camino resultado = scatter.resolver(10);
 

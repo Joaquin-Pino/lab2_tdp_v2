@@ -24,7 +24,8 @@
 class Grasp {
 public:
     Grasp();
-    Grasp(const Grafo& grafo, double alpha = 0.3);
+    // rng compartido inyectado desde afuera; debe sobrevivir al Grasp.
+    Grasp(const Grafo& grafo, std::mt19937& rng, double alpha = 0.3);
 
     // Una construccion golosa aleatorizada: parte de [0] y extiende por la
     // RCL, cerrando al destino. Si la extension se traba antes de llegar,
@@ -42,7 +43,7 @@ public:
 
 private:
     const Grafo* grafo;
-    std::mt19937 rng;
+    std::mt19937* rng; // no-dueño: lo inyecta quien construye el solver
     double alpha; // 0 = puro goloso, 1 = puro azar
 
     std::vector<int> distInv; // dijkstraInvertido(destino): min costo v->destino

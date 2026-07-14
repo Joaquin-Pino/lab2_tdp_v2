@@ -6,12 +6,12 @@
 using namespace std;
 
 Scatter::Scatter()
-    : grafo(nullptr), rng(std::random_device{}()), grasp(),
+    : grafo(nullptr), rng(nullptr), grasp(),
       maxNodosInsertar(3), umbralDensidad(0.6), grafoEsDenso(false), modo(MEJOR) {}
 
-Scatter::Scatter(const Grafo& grafo, int maxNodosInsertar,
+Scatter::Scatter(const Grafo& grafo, std::mt19937& rng, int maxNodosInsertar,
                  double umbralDensidad, ModoInsercion modo)
-    : grafo(&grafo), rng(std::random_device{}()), grasp(grafo),
+    : grafo(&grafo), rng(&rng), grasp(grafo, rng),
       maxNodosInsertar(maxNodosInsertar), umbralDensidad(umbralDensidad),
       modo(modo) {
     grafoEsDenso = densidadGrafo() >= umbralDensidad;
@@ -199,7 +199,7 @@ bool Scatter::sinDuplicados(const vector<int>& mitad1,
 }
 
 Camino Scatter::refinar(const Camino& solucion) const {
-    Kopt kopt(*grafo);
+    Kopt kopt(*grafo, *rng);
     return kopt.resolver(solucion, true, 2);
 }
 

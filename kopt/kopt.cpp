@@ -8,11 +8,9 @@
 
 using namespace std;
 
-Kopt::Kopt(): grafo(nullptr), rng(std::random_device{}()) {}
+Kopt::Kopt(): grafo(nullptr), rng(nullptr) {}
 
-Kopt::Kopt(const Grafo& grafo): grafo(&grafo), rng(std::random_device{}()) {}
-
-Kopt::Kopt(const Grafo& grafo,  unsigned int semilla): grafo(&grafo),  rng(semilla) {} // para debug
+Kopt::Kopt(const Grafo& grafo, std::mt19937& rng): grafo(&grafo), rng(&rng) {}
 
 // wrapper para resolver(iniciaL, primeraMejora)
 Camino Kopt::resolver(bool primeraMejora, int k) {
@@ -165,7 +163,7 @@ Camino Kopt::granSalto(const Camino& inicial, int kSalto) {
     // Se baraja el orden de las posiciones disponibles para no sesgar
     // siempre hacia las mismas primeras posiciones del vector.
     // (requiere <algorithm> para shuffle, y un generador de números aleatorios)
-    shuffle(posicionesIdx.begin(), posicionesIdx.end(), rng);
+    shuffle(posicionesIdx.begin(), posicionesIdx.end(), *rng);
 
     // Se toman kSalto posiciones al azar (las primeras del vector ya mezclado)
     vector<int> combinacion(posicionesIdx.begin(),
@@ -177,7 +175,7 @@ Camino Kopt::granSalto(const Camino& inicial, int kSalto) {
 
     // Se genera UNA sola permutación aleatoria de esos nodos (no todas las k! posibles)
     vector<int> permutacionAleatoria = idsActuales;
-    shuffle(permutacionAleatoria.begin(), permutacionAleatoria.end(), rng);
+    shuffle(permutacionAleatoria.begin(), permutacionAleatoria.end(), *rng);
 
     vector<int> candidatoCamino = caminoActual;
     for (size_t i = 0; i < combinacion.size(); ++i) {

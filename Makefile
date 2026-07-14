@@ -48,5 +48,10 @@ testScatter: $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(
 testBranchAndBound: $(SOLVERS_SRC) branchAndBound/testBranchAndBound.cpp $(SOLVERS_HDR)
 	$(CXX) $(CXXFLAGS) -o $@ $(SOLVERS_SRC) branchAndBound/testBranchAndBound.cpp
 
+# Runner del benchmark estandarizado (lo invoca benchmark/bench.sh). No se
+# incluye en 'all' para no encarecer el build por defecto: usar 'make benchRunner'.
+benchRunner: $(SOLVERS_SRC) benchmark/benchRunner.cpp $(SOLVERS_HDR)
+	$(CXX) $(CXXFLAGS) -o $@ $(SOLVERS_SRC) benchmark/benchRunner.cpp
+
 clean:
-	rm -f main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout testGrasp testScatter testBranchAndBound
+	rm -f main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout testGrasp testScatter testBranchAndBound benchRunner

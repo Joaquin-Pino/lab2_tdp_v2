@@ -6,11 +6,11 @@
 using namespace std;
 
 SolverBranchAndBound::SolverBranchAndBound()
-    : grafo(nullptr), maxIteraciones(0), iteraciones(0),
+    : grafo(nullptr), rng(nullptr), maxIteraciones(0), iteraciones(0),
       totalBenefEntrada(0), mejorBeneficio(0) {}
 
-SolverBranchAndBound::SolverBranchAndBound(const Grafo& grafo, long maxIteraciones)
-    : grafo(&grafo), maxIteraciones(maxIteraciones), iteraciones(0),
+SolverBranchAndBound::SolverBranchAndBound(const Grafo& grafo, std::mt19937& rng, long maxIteraciones)
+    : grafo(&grafo), rng(&rng), maxIteraciones(maxIteraciones), iteraciones(0),
       totalBenefEntrada(0), mejorBeneficio(0) {
     precomputarCotas();
 }
@@ -71,10 +71,10 @@ Camino SolverBranchAndBound::calcularCotaInferior() {
     // los caminos largos, asi que se usa GRASP: construye caminos que llenan el
     // presupuesto con ~95% del beneficio de Scatter a una fraccion del costo.
     if (grafo->getCantVert() <= UMBRAL_SCATTER) {
-        Scatter scatter(*grafo);
+        Scatter scatter(*grafo, *rng);
         evaluarCandidato(scatter.resolver(5));
     } else {
-        Grasp grasp(*grafo);
+        Grasp grasp(*grafo, *rng);
         evaluarCandidato(grasp.resolver(ITER_GRASP_COTA));
     }
 

@@ -2,12 +2,12 @@
 
 using namespace std;
 
-Breakout::Breakout(): grafo(nullptr), minimosLocales({}), L0(2), maxIteraciones(0) {}
+Breakout::Breakout(): grafo(nullptr), rng(nullptr), minimosLocales({}), L0(2), maxIteraciones(0) {}
 
-Breakout::Breakout(const Grafo& grafo, int maxIter, int L0): grafo(&grafo), minimosLocales({}), L0(L0), maxIteraciones(maxIter) {}
+Breakout::Breakout(const Grafo& grafo, std::mt19937& rng, int maxIter, int L0): grafo(&grafo), rng(&rng), minimosLocales({}), L0(L0), maxIteraciones(maxIter) {}
 
 Camino Breakout::resolver() {
-    Kopt solverKopt(*grafo);
+    Kopt solverKopt(*grafo, *rng);
 
     Camino camino = generarSolucionInicial();
     Camino caminoBest = camino;

@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <unordered_set>
+#include <random>
 #include "breakout.h"
 #include "../solverGreedy/solverGreedy.h"
 
@@ -36,7 +37,8 @@ public:
 
     static void test_resolverEncuentraOptimoConocido() {
         Grafo g = crearGrafoConMejoraSwap();
-        Breakout breakout(g, 20);
+        std::mt19937 rng(1);
+        Breakout breakout(g, rng, 20);
 
         Camino resultado = breakout.resolver();
 
@@ -52,7 +54,8 @@ public:
     // grafo) sin ninguna perturbacion ni refinamiento.
     static void test_resolverConCeroIteracionesNoCambiaSolucionInicial() {
         Grafo g = crearGrafoConMejoraSwap();
-        Breakout breakout(g, 0);
+        std::mt19937 rng(1);
+        Breakout breakout(g, rng, 0);
 
         Camino resultado = breakout.resolver();
 
@@ -77,7 +80,8 @@ public:
         Camino base = greedy.resolver();
         assert(base.llegaFinal());
 
-        Breakout breakout(g, 30);
+        std::mt19937 rng(1);
+        Breakout breakout(g, rng, 30);
         Camino resultado = breakout.resolver();
 
         assert(esCaminoValido(g, resultado.getCamino()));

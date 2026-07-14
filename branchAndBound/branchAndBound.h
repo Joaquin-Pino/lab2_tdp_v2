@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <random>
 
 #include "../grafo/grafo.h"
 #include "../camino/camino.h"
@@ -42,6 +43,7 @@ private:
     static constexpr int ITER_GRASP_COTA = 20;
 
     const Grafo* grafo;
+    std::mt19937* rng;     // no-dueño: se propaga a las heuristicas de cota inferior (Scatter/Grasp)
     long maxIteraciones;   // tope de expansiones de nodo
     long iteraciones;      // contador interno de expansiones
 
@@ -80,7 +82,9 @@ private:
 
 public:
     SolverBranchAndBound();
-    SolverBranchAndBound(const Grafo& grafo, long maxIteraciones = 2000000);
+    // rng compartido inyectado desde afuera; debe sobrevivir al solver. B&B no
+    // consume aleatoriedad por si mismo, solo la propaga a la cota inferior.
+    SolverBranchAndBound(const Grafo& grafo, std::mt19937& rng, long maxIteraciones = 2000000);
 
     Camino resolver();
 };

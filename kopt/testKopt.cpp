@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <random>
 #include "kopt.h"
 
 class TestKopt {
@@ -25,7 +26,8 @@ public:
 
     static void test_resolverInicialMejoraConSwapK2() {
         Grafo g = crearGrafoConMejoraSwap();
-        Kopt kopt(g, 2);
+        std::mt19937 rng(2);
+        Kopt kopt(g, rng);
         Camino inicial(std::vector<int>{0, 1, 2, 3, 4}, g);
 
         Camino resultado = kopt.resolver(inicial);
@@ -50,7 +52,8 @@ public:
 
     static void test_resolverInicialSinAristasValidasNoCambia() {
         Grafo g = crearGrafoSinAristasAlternativas();
-        Kopt kopt(g, 2);
+        std::mt19937 rng(2);
+        Kopt kopt(g, rng);
         Camino inicial(std::vector<int>{0, 1, 2, 3, 4}, g);
 
         Camino resultado = kopt.resolver(inicial);
@@ -79,7 +82,8 @@ public:
 
     static void test_resolverInicialRespetaPresupuesto() {
         Grafo g = crearGrafoQueExcedePresupuesto();
-        Kopt kopt(g, 2);
+        std::mt19937 rng(2);
+        Kopt kopt(g, rng);
         Camino inicial(std::vector<int>{0, 1, 2, 3, 4}, g);
 
         Camino resultado = kopt.resolver(inicial);
@@ -110,7 +114,8 @@ public:
 
     static void test_resolverSinArgumentosDelegaEnGreedyYMejora() {
         Grafo g = crearGrafoParaResolverSinArgumentos();
-        Kopt kopt(g, 2);
+        std::mt19937 rng(2);
+        Kopt kopt(g, rng);
 
         Camino resultado = kopt.resolver();
 
@@ -138,11 +143,12 @@ public:
 
     static void test_resolverInicialMejoraConK3() {
         Grafo g = crearGrafoConMejoraK3();
-        Kopt kopt(g);
+        std::mt19937 rng(2);
+        Kopt kopt(g, rng);
         Camino inicial(std::vector<int>{0, 1, 2, 3, 4, 5}, g);
 
-        // k=3 explicito: el constructor no fija un k por defecto (su 2do
-        // argumento es la semilla del RNG, usada solo por granSalto/perturbar).
+        // k=3 explicito: el constructor no fija un k por defecto (el rng que
+        // recibe el ctor solo lo usan granSalto/perturbar, no resolver()).
         Camino resultado = kopt.resolver(inicial, true, 3);
 
         assert((resultado.getCamino() == std::vector<int>{0, 3, 1, 2, 4, 5}));

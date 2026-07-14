@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <unordered_set>
+#include <random>
 #include "grasp.h"
 
 using namespace std;
@@ -31,7 +32,8 @@ public:
 
     static void test_construirConCaminoUnicoDevuelveEseCamino() {
         Grafo g = crearGrafoLineal();
-        Grasp grasp(g);
+        std::mt19937 rng(1);
+        Grasp grasp(g, rng);
 
         Camino resultado = grasp.construir();
 
@@ -59,7 +61,8 @@ public:
 
     static void test_construirConAlphaUnoEsGolosoPuro() {
         Grafo g = crearGrafoConRamaDominante();
-        Grasp grasp(g, 1.0);
+        std::mt19937 rng(1);
+        Grasp grasp(g, rng, 1.0);
 
         Camino resultado = grasp.construir();
 
@@ -73,7 +76,8 @@ public:
     // usa el rng). Solo se verifican los invariantes que siempre deben cumplirse.
     static void test_construirSobreGrafoGrandeRespetaInvariantes() {
         Grafo g = Grafo::cargarDesdeArchivo("grafoGrande.txt");
-        Grasp grasp(g);
+        std::mt19937 rng(1);
+        Grasp grasp(g, rng);
 
         Camino resultado = grasp.construir();
 
@@ -85,7 +89,8 @@ public:
 
     static void test_generarPoblacionDevuelveCaminosValidosYRefinados() {
         Grafo g = Grafo::cargarDesdeArchivo("grafoGrande.txt");
-        Grasp grasp(g);
+        std::mt19937 rng(1);
+        Grasp grasp(g, rng);
 
         vector<Camino> poblacion = grasp.generarPoblacion(10);
 
@@ -102,7 +107,8 @@ public:
     // presupuesto y llegar al destino igual que construir().
     static void test_resolverConCaminoUnicoDevuelveEseCamino() {
         Grafo g = crearGrafoLineal();
-        Grasp grasp(g);
+        std::mt19937 rng(1);
+        Grasp grasp(g, rng);
 
         Camino resultado = grasp.resolver(5);
 
@@ -116,7 +122,8 @@ public:
     // con mas iteraciones el beneficio del mejor encontrado no puede bajar.
     static void test_resolverNoEmpeoraAlIterarMas() {
         Grafo g = Grafo::cargarDesdeArchivo("grafoGrande.txt");
-        Grasp grasp(g);
+        std::mt19937 rng(1);
+        Grasp grasp(g, rng);
 
         Camino conUnaIter = grasp.resolver(1);
         Camino conVariasIter = grasp.resolver(15);

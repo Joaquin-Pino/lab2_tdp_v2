@@ -14,13 +14,15 @@ private:
     bool verificarAristas(const std::vector<int>& combinacion, 
                         const std::vector<int>& candidatoCamino);
 
-    std::mt19937 rng;
-    
+    std::mt19937* rng; // no-dueño: lo inyecta quien construye el solver
+
+
 public:
 
     Kopt();
-    Kopt(const Grafo& grafo);
-    Kopt(const Grafo& grafo, unsigned int semilla); // para debug
+    // rng compartido inyectado desde afuera (main/runner/test); debe sobrevivir
+    // al Kopt, igual contrato que el puntero a Grafo.
+    Kopt(const Grafo& grafo, std::mt19937& rng);
     // no es necesario el de copia, no hay asignacion dinaimica de memoria
 
     // K-OPT convencional: genera una solucion inicial con el goloso y la

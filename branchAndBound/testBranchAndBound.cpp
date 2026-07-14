@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <random>
 
 #include "branchAndBound.h"
 #include "../grafo/grafo.h"
@@ -28,7 +29,8 @@ public:
 
     static void test_encuentraOptimo() {
         Grafo g = construirGrafo();
-        SolverBranchAndBound solver(g, 1000000);
+        std::mt19937 rng(1);
+        SolverBranchAndBound solver(g, rng, 1000000);
         Camino r = solver.resolver();
 
         assert(r.esCaminoCompleto());
@@ -49,7 +51,8 @@ public:
         g.insertarArista(2, 3, 1, 1);
         g.insertarArista(1, 2, 1, 5);
 
-        SolverBranchAndBound solver(g, 1000000);
+        std::mt19937 rng(1);
+        SolverBranchAndBound solver(g, rng, 1000000);
         Camino r = solver.resolver();
 
         assert(r.esCaminoCompleto());
@@ -63,7 +66,8 @@ public:
         // con un tope muy bajo igual debe devolver un camino completo (el de las
         // heuristicas), nunca uno invalido.
         Grafo g = construirGrafo();
-        SolverBranchAndBound solver(g, 1);
+        std::mt19937 rng(1);
+        SolverBranchAndBound solver(g, rng, 1);
         Camino r = solver.resolver();
 
         assert(r.esCaminoCompleto());

@@ -5,10 +5,10 @@
 
 using namespace std;
 
-Grasp::Grasp() : grafo(nullptr), rng(std::random_device{}()), alpha(0.3) {}
+Grasp::Grasp() : grafo(nullptr), rng(nullptr), alpha(0.3) {}
 
-Grasp::Grasp(const Grafo& grafo, double alpha)
-    : grafo(&grafo), rng(std::random_device{}()), alpha(alpha) {
+Grasp::Grasp(const Grafo& grafo, std::mt19937& rng, double alpha)
+    : grafo(&grafo), rng(&rng), alpha(alpha) {
     // Se precalcula una sola vez por instancia: es el costo minimo de cada
     // nodo hasta el destino, usado como cota para podar candidatos infactibles
     // tanto en candidatosExtension() como implicitamente en completarHastaDestino().
@@ -50,7 +50,7 @@ Camino Grasp::construir() {
         // Parte "randomized" de GRASP: en vez de tomar siempre el mejor
         // candidato, se elige uno al azar (uniforme) entre los de la RCL.
         uniform_int_distribution<size_t> dist(0, rcl.size() - 1);
-        const CandidatoExtension* elegido = rcl[dist(rng)];
+        const CandidatoExtension* elegido = rcl[dist(*rng)];
 
         camino.push_back(elegido->nodo);
         enCamino.insert(elegido->nodo);
@@ -199,7 +199,7 @@ Camino Grasp::refinar(const Camino& solucion) const {
     // En grafos grandes el 2-opt sobre caminos largos cuesta segundos por
     // construccion y casi no mejora frente a lo que ya deja rellenar(); se omite.
     if (grafo->getCantVert() > UMBRAL_REFINE) return solucion;
-    Kopt kopt(*grafo);
+    Kopt kopt(*grafo, *rng);
     return kopt.resolver(solucion, true, 2);
 }
 

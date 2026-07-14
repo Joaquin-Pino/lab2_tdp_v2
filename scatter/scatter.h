@@ -22,7 +22,9 @@ public:
     // de grados, asi que la densidad duplica a la del mismo conjunto de aristas
     // leido como dirigido. El 0.6 conserva la clasificacion denso/disperso que
     // daba el 0.3 sobre la densidad dirigida.
-    Scatter(const Grafo& grafo, int maxNodosInsertar = 3,
+    // rng compartido inyectado desde afuera; debe sobrevivir al Scatter. Se
+    // propaga a su Grasp y al Kopt de refinar().
+    Scatter(const Grafo& grafo, std::mt19937& rng, int maxNodosInsertar = 3,
             double umbralDensidad = 0.6, ModoInsercion modo = MEJOR);
 
     Camino resolver(int maxIter);
@@ -30,7 +32,7 @@ public:
 
 private:
     const Grafo* grafo;
-    std::mt19937 rng;
+    std::mt19937* rng; // no-dueño: lo inyecta quien construye el solver
     Grasp grasp; // construccion GRASP: arma la poblacion inicial (ver generarPoblacion)
 
     int maxNodosInsertar;      // largo maximo de la subcadena a injertar

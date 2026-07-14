@@ -5,6 +5,7 @@
 #include <memory>
 #include <chrono>
 #include <limits>
+#include <random>
 
 #include "grafo/grafo.h"
 #include "camino/camino.h"
@@ -20,6 +21,12 @@ using namespace std::chrono;
 class Menu {
 private:
     unique_ptr<Grafo> grafo;
+
+    // Un unico generador compartido por todos los solvers (se pasa por
+    // referencia). Por defecto se siembra con random_device: cada ejecucion
+    // difiere. La opcion "Cambiar semilla" del menu permite fijarlo para
+    // reproducir una corrida.
+    mt19937 rng{random_device{}()};
 
     bool hayGrafoCargado() const {
         if (!grafo) {
@@ -60,7 +67,7 @@ private:
     }
 
     void ejecutarBranchAndBound() {
-        SolverBranchAndBound bnb(*grafo);
+        SolverBranchAndBound bnb(*grafo, rng);
         auto inicio = high_resolution_clock::now();
         Camino solucion = bnb.resolver();
         auto fin = high_resolution_clock::now();
@@ -74,7 +81,7 @@ private:
     }
 
     void ejecutar2Opt() {
-        Kopt kopt(*grafo);
+        Kopt kopt(*grafo, rng);
         auto inicio = high_resolution_clock::now();
         Camino solucion = kopt.resolver();
         auto fin = high_resolution_clock::now();
@@ -85,7 +92,7 @@ private:
     void ejecutarBreakout() {
         const int maxIter = 100;
         const int L0 = 2;
-        Breakout breakout(*grafo, maxIter, L0);
+        Breakout breakout(*grafo, rng, maxIter, L0);
         auto inicio = high_resolution_clock::now();
         Camino solucion = breakout.resolver();
         auto fin = high_resolution_clock::now();
@@ -94,7 +101,7 @@ private:
     }
 
     void ejecutarScatter(){
-        Scatter scatterSolver(*grafo);
+        Scatter scatterSolver(*grafo, rng);
         auto inicio = high_resolution_clock::now();
         Camino solucion = scatterSolver.resolver(5);
         auto fin = high_resolution_clock::now();
@@ -130,6 +137,20 @@ private:
             default:
                 cout << "Opcion invalida.\n";
         }
+    }
+
+    void cambiarSemilla() {
+        cout << "Ingrese la nueva semilla (entero): ";
+        unsigned int semilla;
+        cin >> semilla;
+        if (cin.fail()) {
+            cin.clear();
+            limpiarLineaPendiente();
+            cout << "Semilla invalida.\n";
+            return;
+        }
+        rng.seed(semilla);
+        cout << "Semilla fijada en " << semilla << " (corridas reproducibles).\n";
     }
 
     void ingresarCaminoManual() {
@@ -168,7 +189,8 @@ public:
             cout << "2. Ejecutar mejor algoritmo (Branch and Bound)\n";
             cout << "3. Seleccionar algoritmo especifico\n";
             cout << "4. Ingresar camino manualmente\n";
-            cout << "5. Salir\n";
+            cout << "5. Cambiar semilla\n";
+            cout << "6. Salir\n";
             cout << "Opcion: ";
 
             int opcion;
@@ -194,6 +216,9 @@ public:
                     ingresarCaminoManual();
                     break;
                 case 5:
+                    cambiarSemilla();
+                    break;
+                case 6:
                     salir = true;
                     break;
                 default:

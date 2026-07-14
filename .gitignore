@@ -9,3 +9,6 @@ testBreakout
 testKopt
 testScatter
 testGrasp
+main
+benchRunner
+benchmark
