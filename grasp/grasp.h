@@ -7,9 +7,7 @@
 #include <unordered_set>
 
 // Grasp: metaheuristica constructiva (Greedy Randomized Adaptive Search
-// Procedure). Antes vivia mezclada dentro de Scatter; se extrae porque son
-// dos responsabilidades distintas: Grasp construye soluciones (una por vez o
-// una poblacion), Scatter las combina.
+// Procedure).
 //
 // construir() arma un camino nodo a nodo: en cada paso arma una lista
 // restringida de candidatos (RCL) con los vecinos no visitados cuya
