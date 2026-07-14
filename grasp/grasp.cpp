@@ -30,6 +30,7 @@ Camino Grasp::construir() {
             mejorEf = max(mejorEf, c.eficiencia);
             peorEf = min(peorEf, c.eficiencia);
         }
+        
         double corte = peorEf + alpha * (mejorEf - peorEf);
 
         // RCL: candidatos suficientemente eficientes.
