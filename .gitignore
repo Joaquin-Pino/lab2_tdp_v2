@@ -12,3 +12,6 @@ testGrasp
 main
 benchRunner
 benchmark
+resultados
+*.sh
+*.csv
