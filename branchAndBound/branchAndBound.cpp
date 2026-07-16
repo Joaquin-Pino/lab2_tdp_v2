@@ -5,10 +5,6 @@
 
 using namespace std;
 
-SolverBranchAndBound::SolverBranchAndBound()
-    : grafo(nullptr), rng(nullptr), maxIteraciones(0), iteraciones(0),
-      totalBenefEntrada(0), mejorBeneficio(0) {}
-
 SolverBranchAndBound::SolverBranchAndBound(const Grafo& grafo, std::mt19937& rng, long maxIteraciones)
     : grafo(&grafo), rng(&rng), maxIteraciones(maxIteraciones), iteraciones(0),
       totalBenefEntrada(0), mejorBeneficio(0) {

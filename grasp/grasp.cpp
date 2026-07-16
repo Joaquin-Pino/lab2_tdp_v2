@@ -5,8 +5,6 @@
 
 using namespace std;
 
-Grasp::Grasp() : grafo(nullptr), rng(nullptr), alpha(0.3) {}
-
 Grasp::Grasp(const Grafo& grafo, std::mt19937& rng, double alpha)
     : grafo(&grafo), rng(&rng), alpha(alpha) {
     // Se precalcula una sola vez por instancia: es el costo minimo de cada

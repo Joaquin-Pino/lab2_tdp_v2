@@ -5,10 +5,6 @@
 
 using namespace std;
 
-Scatter::Scatter()
-    : grafo(nullptr), rng(nullptr), grasp(),
-      maxNodosInsertar(3), umbralDensidad(0.6), grafoEsDenso(false), modo(MEJOR) {}
-
 Scatter::Scatter(const Grafo& grafo, std::mt19937& rng, int maxNodosInsertar,
                  double umbralDensidad, ModoInsercion modo)
     : grafo(&grafo), rng(&rng), grasp(grafo, rng),

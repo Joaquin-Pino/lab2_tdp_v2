@@ -11,19 +11,12 @@ private:
     std::vector<int> camino;
 
     const Grafo* grafo;
-    int calcularPesoTotal(); // implementar si es necesario
-    int calcularBeneficioTotal(); // implementar si es necesario
     void calcularYAsignarPesoYBeneficio();
 
     void eliminarUltimo();
 
 public:
-    Camino();
     Camino(std::vector<int> camino, const Grafo& grafo);
-    // operator<: compara por beneficio total. c1 < c2 significa que c1 tiene
-    // MENOR beneficio (es decir, PEOR solución)
-    bool operator<(const Camino& otro) const;
-    bool operator>(const Camino& otro) const;
 
     int getPesoTotal();
     int getBeneficioTotal() const;
@@ -48,8 +41,6 @@ public:
     int getUltimoNodo();
 
     bool esCaminoCompleto();
-    float getRatioNodo(int id);
-    void reemplazarNodo(int oldId, int newId);
     const std::vector<int>& getCamino() const;
 
     int getPosicionNodo(int idNodo);
@@ -57,9 +48,4 @@ public:
     bool llegaFinal();
 
     void concatenar(const std::vector<int> &c);
-
-    void setPesoTotal(int p);
-    void setCamino(std::vector<int> c);
-
-    void setBeneficio(int b);
 };

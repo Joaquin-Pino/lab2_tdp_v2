@@ -81,7 +81,6 @@ private:
              std::vector<char>& enCamino);
 
 public:
-    SolverBranchAndBound();
     // rng compartido inyectado desde afuera; debe sobrevivir al solver. B&B no
     // consume aleatoriedad por si mismo, solo la propaga a la cota inferior.
     SolverBranchAndBound(const Grafo& grafo, std::mt19937& rng, long maxIteraciones = 2000000);

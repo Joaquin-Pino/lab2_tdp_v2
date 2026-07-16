@@ -3,20 +3,10 @@
 
 using namespace std;
 
-Camino::Camino() : pesoTotal(0), beneficioTotal(0), grafo(nullptr) {}
-
 Camino::Camino(vector<int> camino, const Grafo& grafo) :  pesoTotal(0), beneficioTotal(0), camino(camino){
     this->grafo = &grafo;
     for (int id : camino) visitados.insert(id);
     calcularYAsignarPesoYBeneficio();
-}
-
-bool Camino::operator<(const Camino& otro) const {
-    return this->getBeneficioTotal() < otro.getBeneficioTotal();
-}
-
-bool Camino::operator>(const Camino& otro) const {
-    return this->getBeneficioTotal() > otro.getBeneficioTotal();
 }
 
 bool Camino::agregarNodo(int id){
@@ -135,32 +125,6 @@ bool Camino::esCaminoCompleto(){
     return camino.front() == 0 && camino.back() == grafo->getCantVert() - 1;
 }
 
-float Camino::getRatioNodo(int id){
-    //para cada nodo 
-    for (int i = 1; i < (int)camino.size() - 1; i++){
-        if (camino[i] == id){
-            Nodo entrada = grafo->getArista(camino[i-1], id);
-            Nodo salida  = grafo->getArista(id, camino[i+1]);
-            int costo = entrada.costo + salida.costo;
-            if (costo == 0) return 0.0f;
-            return (float)(entrada.beneficio + salida.beneficio) / costo;
-        }
-    }
-    return -1.0f;
-}
-
-void Camino::reemplazarNodo(int oldId, int newId){
-    for (int i = 1; i < (int)camino.size() - 1; i++){
-        if (camino[i] == oldId){
-            visitados.erase(oldId);
-            camino[i] = newId;
-            visitados.insert(newId);
-            calcularYAsignarPesoYBeneficio();
-            return;
-        }
-    }
-}
-
 int Camino::getLargo(){
     return camino.size();
 }
@@ -182,22 +146,6 @@ bool Camino::llegaFinal(){
     return false;
 }
 
-
-void Camino::setPesoTotal(int p){
-    pesoTotal = p;
-}
-void Camino::setCamino(std::vector<int> c){
-    // TODO: reemplaza el vector pero NO reconstruye visitados (ni peso/beneficio),
-    // dejando la invariante rota: tras un setCamino, nodoFueVisitado()/agregarNodo()
-    // dan resultados falsos. Actualmente nadie lo llama, pero al escribir B&B/main
-    // hay que rehacer visitados (y recalcular peso/beneficio) como el constructor,
-    // o eliminar este setter.
-    camino = c;
-}
-
-void Camino::setBeneficio(int n){
-    beneficioTotal = n;
-}
 
 void Camino::concatenar(const vector<int>& c) {
     for (int id : c){

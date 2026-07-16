@@ -23,7 +23,6 @@
 // construccion + refinamiento 2-opt y se queda con el mejor beneficio.
 class Grasp {
 public:
-    Grasp();
     // rng compartido inyectado desde afuera; debe sobrevivir al Grasp.
     Grasp(const Grafo& grafo, std::mt19937& rng, double alpha = 0.3);
 

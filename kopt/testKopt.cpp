@@ -148,7 +148,7 @@ public:
         Camino inicial(std::vector<int>{0, 1, 2, 3, 4, 5}, g);
 
         // k=3 explicito: el constructor no fija un k por defecto (el rng que
-        // recibe el ctor solo lo usan granSalto/perturbar, no resolver()).
+        // recibe el ctor solo lo usa granSalto, no resolver()).
         Camino resultado = kopt.resolver(inicial, true, 3);
 
         assert((resultado.getCamino() == std::vector<int>{0, 3, 1, 2, 4, 5}));

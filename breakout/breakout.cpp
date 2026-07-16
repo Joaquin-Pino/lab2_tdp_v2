@@ -2,9 +2,7 @@
 
 using namespace std;
 
-Breakout::Breakout(): grafo(nullptr), rng(nullptr), minimosLocales({}), L0(2), maxIteraciones(0) {}
-
-Breakout::Breakout(const Grafo& grafo, std::mt19937& rng, int maxIter, int L0): grafo(&grafo), rng(&rng), minimosLocales({}), L0(L0), maxIteraciones(maxIter) {}
+Breakout::Breakout(const Grafo& grafo, std::mt19937& rng, int maxIter, int L0): grafo(&grafo), rng(&rng), L0(L0), maxIteraciones(maxIter) {}
 
 // Breakout Search: alterna saltos grandes (escapar del optimo local actual)
 // con refinamiento 2-OPT (volver a caer en un optimo local), igual que
@@ -25,9 +23,6 @@ Camino Breakout::resolver() {
         Camino caminoSalto = solverKopt.granSalto(camino, L);
         // refinamiento: 2-OPT (k=2) steepest-descent hasta el siguiente optimo local
         Camino caminoRefinado = solverKopt.resolver(caminoSalto, false, 2);
-
-        vector<int> clave = caminoRefinado.getCamino();
-        minimosLocales.insert(clave);
 
         if (caminoRefinado.getBeneficioTotal() > caminoBest.getBeneficioTotal()) {
             caminoBest = caminoRefinado;

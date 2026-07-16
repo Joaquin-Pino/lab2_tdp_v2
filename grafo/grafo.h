@@ -11,7 +11,6 @@
 class Grafo {
 private:
     int cantVert;
-    int cantArist;
     int maxW;
     std::vector<std::vector<Nodo>> listaAdy;
     // Indice paralelo extremo -> (vecino -> Nodo) para consultas de arista O(1)
@@ -32,7 +31,6 @@ public:
     const std::vector<Nodo>& getVecinos(int idNodo) const;
     int getCantVert() const;
     int getMaxW() const;
-    int getNodoDestino() const;
 
     std::vector<int> dijkstra(int origen) const;
 
@@ -42,10 +40,6 @@ public:
     std::vector<int> dijkstraInvertido(int destino) const;
 
     std::vector<int> dijkstraCamino(int origen, int destino) const;
-
-    // Mejor razon beneficio/costo entre las aristas incidentes a id (-1 si no
-    // tiene ninguna con costo > 0).
-    float getRatioMejorEntrada(int id) const;
 
     Nodo getArista(int a, int b)const;
 

@@ -10,7 +10,7 @@ public:
         Grafo g(5, 6, 20);
         assert(g.getCantVert() == 5);
         assert(g.getMaxW() == 20);
-        assert(g.getNodoDestino() == 4);
+        assert(g.getIdNodoFinal() == 4);
         std::cout << "test_getters: OK\n";
     }
 
@@ -109,7 +109,7 @@ public:
         Grafo g = Grafo::cargarDesdeArchivo("ejemplo.txt");
         assert(g.getCantVert() == 4);
         assert(g.getMaxW() == 7);
-        assert(g.getNodoDestino() == 3);
+        assert(g.getIdNodoFinal() == 3);
 
         Nodo a01 = g.getArista(0, 1);
         assert(a01.costo == 1 && a01.beneficio == 4);

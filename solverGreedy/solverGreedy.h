@@ -19,7 +19,6 @@ private:
     int obtenerMejorNodo(int nodoActual, int pesoDisponible, const Camino& sol);
 public:
 
-    SolverGreedy();
     SolverGreedy(const Grafo& grafo);
     Camino resolver();
 

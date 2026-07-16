@@ -17,7 +17,6 @@ public:
     enum ModoInsercion { MEJOR, PRIMERA };
 
 
-    Scatter();
     // umbralDensidad = 0.6: en un grafo no dirigido cada arista suma 2 al total
     // de grados, asi que la densidad duplica a la del mismo conjunto de aristas
     // leido como dirigido. El 0.6 conserva la clasificacion denso/disperso que

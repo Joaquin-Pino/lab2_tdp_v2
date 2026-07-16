@@ -9,8 +9,10 @@
 using namespace std;
 
 Grafo::Grafo(int cantVert, int cantArist, int maxW)
-    : cantVert(cantVert), cantArist(cantArist), maxW(maxW),
-      listaAdy(cantVert), ady(cantVert) {}
+    : cantVert(cantVert), maxW(maxW),
+      listaAdy(cantVert), ady(cantVert) {
+    (void)cantArist;
+}
 
 Grafo Grafo::cargarDesdeArchivo(const string& filename) {
     ifstream file(filename);
@@ -55,7 +57,6 @@ const vector<Nodo>& Grafo::getVecinos(int idNodo) const {
 
 int Grafo::getCantVert() const { return cantVert;}
 int Grafo::getMaxW() const { return maxW;}
-int Grafo::getNodoDestino() const { return cantVert - 1;}
 
 vector<int> Grafo::dijkstra(int origen) const {
     vector<int> dist(cantVert, INT_MAX);
@@ -121,19 +122,6 @@ vector<int> Grafo::dijkstraInvertido(int destino) const {
     // con listaAdy, y el costo de v a destino es el mismo que de destino a v:
     // basta un Dijkstra desde el destino.
     return dijkstra(destino);
-}
-
-float Grafo::getRatioMejorEntrada(int id) const {
-    // Al ser no dirigido, las aristas entrantes a id son sus mismas incidentes:
-    // alcanza con recorrer listaAdy[id] en vez de barrer todo el grafo.
-    float mejor = -1.0f;
-    for (const Nodo& n : listaAdy[id]) {
-        if (n.costo > 0) {
-            float r = (float)n.beneficio / n.costo;
-            if (r > mejor) mejor = r;
-        }
-    }
-    return mejor;
 }
 
 Nodo Grafo::getArista(int a, int b) const{

@@ -2,8 +2,6 @@
 
 using namespace std;
 
-SolverGreedy::SolverGreedy() : grafo(nullptr) {}
-
 SolverGreedy::SolverGreedy(const Grafo& grafo) : grafo(&grafo) {}
 
 int SolverGreedy::obtenerMejorNodo(int nodoActual, int pesoDisponible, const Camino& sol){
