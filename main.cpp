@@ -18,6 +18,9 @@
 using namespace std;
 using namespace std::chrono;
 
+// Menu interactivo de consola (ver seccion "Required main.cpp menu" en
+// CLAUDE.md). Cada ejecutarX() cronometra su solver con chrono e imprime
+// camino/peso/beneficio/tiempo con el mismo formato via imprimirResultado().
 class Menu {
 private:
     unique_ptr<Grafo> grafo;
