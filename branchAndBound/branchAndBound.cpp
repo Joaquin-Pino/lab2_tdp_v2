@@ -1,5 +1,8 @@
 #include "branchAndBound.h"
 
+#include "../kopt/kopt.h"
+#include "../breakout/breakout.h"
+
 #include <climits>
 #include <algorithm>
 
@@ -57,21 +60,42 @@ void SolverBranchAndBound::evaluarCandidato(Camino c) {
 }
 
 Camino SolverBranchAndBound::calcularCotaInferior() {
-    // El goloso es barato en cualquier tamano: siempre aporta un candidato base
-    // y sirve de piso universal.
-    SolverGreedy greedy(*grafo);
-    evaluarCandidato(greedy.resolver());
+    // El Planner decide, segun el grafo, que heuristicas correr como cota y con
+    // que parametros (antes esto eran las constantes UMBRAL_SCATTER / ITER_GRASP_
+    // COTA hardcodeadas aca). El B&B solo ejecuta el plan; evaluarCandidato se
+    // queda con el mejor, asi que agregar pasos nunca puede empeorar la cota.
+    Planner planner(*grafo);
+    PlanCota plan = planner.planificar();
 
-    // En grafos chicos se paga Scatter, que da la cota mas ajustada (combina
-    // soluciones) y aca es barato. En grafos grandes su 2-opt se dispara con
-    // los caminos largos, asi que se usa GRASP: construye caminos que llenan el
-    // presupuesto con ~95% del beneficio de Scatter a una fraccion del costo.
-    if (grafo->getCantVert() <= UMBRAL_SCATTER) {
-        Scatter scatter(*grafo, *rng);
-        evaluarCandidato(scatter.resolver(5));
-    } else {
-        Grasp grasp(*grafo, *rng);
-        evaluarCandidato(grasp.resolver(ITER_GRASP_COTA));
+    for (const PasoCota& paso : plan.pasos) {
+        switch (paso.heuristica) {
+            case PasoCota::Heuristica::GREEDY: {
+                SolverGreedy greedy(*grafo);
+                evaluarCandidato(greedy.resolver());
+                break;
+            }
+            case PasoCota::Heuristica::SCATTER: {
+                Scatter scatter(*grafo, *rng, 3, 0.6, Scatter::MEJOR,
+                                paso.tamPoblacion, paso.tamRefSet);
+                evaluarCandidato(scatter.resolver(paso.iteraciones));
+                break;
+            }
+            case PasoCota::Heuristica::GRASP: {
+                Grasp grasp(*grafo, *rng, paso.alpha, paso.umbralRefine);
+                evaluarCandidato(grasp.resolver(paso.iteraciones));
+                break;
+            }
+            case PasoCota::Heuristica::KOPT: {
+                Kopt kopt(*grafo, *rng);
+                evaluarCandidato(kopt.resolver());
+                break;
+            }
+            case PasoCota::Heuristica::BREAKOUT: {
+                Breakout breakout(*grafo, *rng, paso.iteraciones);
+                evaluarCandidato(breakout.resolver());
+                break;
+            }
+        }
     }
 
     // Red de seguridad: si ninguna heuristica dio un camino completo, usar el

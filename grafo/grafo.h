@@ -32,6 +32,17 @@ public:
     int getCantVert() const;
     int getMaxW() const;
 
+    // Cantidad de aristas no dirigidas: se cuenta desde listaAdy (suma de grados
+    // / 2) porque el ctor descarta el cantArist del archivo. Recorre la lista de
+    // adyacencia en O(N + M).
+    int getCantAristas() const;
+
+    // Densidad del grafo no dirigido: 2M / (N(N-1)), o sea suma de grados sobre
+    // pares ordenados posibles. Vale 1 en el grafo completo y 0 si N <= 1. Es la
+    // misma metrica que usa el Planner para elegir la heuristica de cota y que
+    // Scatter usa para elegir su operador de combinacion.
+    double getDensidad() const;
+
     std::vector<int> dijkstra(int origen) const;
 
     std::vector<int> dijkstraCamino(int origen, int destino) const;

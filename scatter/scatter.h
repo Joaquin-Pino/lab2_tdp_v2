@@ -22,9 +22,12 @@ public:
     // leido como dirigido. El 0.6 conserva la clasificacion denso/disperso que
     // daba el 0.3 sobre la densidad dirigida.
     // rng compartido inyectado desde afuera; debe sobrevivir al Scatter. Se
-    // propaga a su Grasp y al Kopt de refinar().
+    // propaga a su Grasp y al Kopt de refinar(). tamPoblacion/tamRefSet son los
+    // tamanos de la busqueda dispersa: se exponen para que el Planner los pueda
+    // escalar segun el grafo (defaults = valores calibrados previos).
     Scatter(const Grafo& grafo, std::mt19937& rng, int maxNodosInsertar = 3,
-            double umbralDensidad = 0.6, ModoInsercion modo = MEJOR);
+            double umbralDensidad = 0.6, ModoInsercion modo = MEJOR,
+            int tamPoblacion = 30, int tamRefSet = 10);
 
     Camino resolver(int maxIter);
     Camino combinar(const Camino& C1, const Camino& C2) const;
@@ -39,13 +42,12 @@ private:
     bool grafoEsDenso;         // decidido una vez en el ctor
     ModoInsercion modo; // variante de insertarSubcadena a usar
 
-    // Tamanos de la busqueda dispersa (calibrables).
-    static constexpr int TAM_POBLACION = 30;
-    static constexpr int TAM_REFSET = 10;
+    // Tamanos de la busqueda dispersa (los fija el ctor; el Planner los escala).
+    int tamPoblacion;
+    int tamRefSet;
 
-    // Densidad del grafo no dirigido: suma de grados / pares ordenados posibles,
-    // o sea 2M / (N(N-1)), con M = cantidad de aristas no dirigidas. Vale 1 en
-    // el grafo completo.
+    // Densidad del grafo no dirigido: delega en Grafo::getDensidad(), que es
+    // 2M / (N(N-1)). Vale 1 en el grafo completo.
     double densidadGrafo() const;
 
     // --- Combinacion ------------------------------------------------------

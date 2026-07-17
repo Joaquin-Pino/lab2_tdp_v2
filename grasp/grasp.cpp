@@ -5,8 +5,8 @@
 
 using namespace std;
 
-Grasp::Grasp(const Grafo& grafo, std::mt19937& rng, double alpha)
-    : grafo(&grafo), rng(&rng), alpha(alpha) {
+Grasp::Grasp(const Grafo& grafo, std::mt19937& rng, double alpha, int umbralRefine)
+    : grafo(&grafo), rng(&rng), alpha(alpha), umbralRefine(umbralRefine) {
     // Se precalcula una sola vez por instancia: es el costo minimo de cada
     // nodo hasta el destino, usado como cota para podar candidatos infactibles
     // tanto en candidatosExtension() como implicitamente en completarHastaDestino().
@@ -196,7 +196,7 @@ vector<int> Grasp::rellenar(vector<int> camino) const {
 Camino Grasp::refinar(const Camino& solucion) const {
     // En grafos grandes el 2-opt sobre caminos largos cuesta segundos por
     // construccion y casi no mejora frente a lo que ya deja rellenar(); se omite.
-    if (grafo->getCantVert() > UMBRAL_REFINE) return solucion;
+    if (grafo->getCantVert() > umbralRefine) return solucion;
     Kopt kopt(*grafo, *rng);
     return kopt.resolver(solucion, true, 2);
 }

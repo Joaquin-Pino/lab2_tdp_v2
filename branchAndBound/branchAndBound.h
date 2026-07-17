@@ -8,14 +8,17 @@
 #include "../solverGreedy/solverGreedy.h"
 #include "../scatter/scatter.h"
 #include "../grasp/grasp.h"
+#include "../planner/planner.h"
 
 // SolverBranchAndBound: el "mejor algoritmo" y orquestador.
 //
 // Estrategia:
-//  1) Cota inferior (incumbente): corre las heuristicas ya implementadas
-//     (Greedy, 2-OPT/Kopt, Breakout, Scatter) y se queda con el mejor camino
-//     factible. Ese beneficio arranca como el mejor conocido y sirve para
-//     podar el arbol desde el comienzo.
+//  1) Cota inferior (incumbente): el Planner decide, segun el grafo, que
+//     heuristicas correr (portafolio con Greedy de piso) y con que parametros;
+//     el B&B ejecuta ese plan y se queda con el mejor camino factible. Ese
+//     beneficio arranca como el mejor conocido y sirve para podar desde el
+//     comienzo. Elegir un plan u otro no puede empeorar el resultado: el B&B
+//     solo sube el incumbente, asi que siempre devuelve >= la mejor cota.
 //  2) Busqueda exacta con iterative deepening (profundidad creciente) + DFS
 //     con dos podas:
 //       - factibilidad en peso (ec. 3 del enunciado):
@@ -31,20 +34,6 @@
 //     camino encontrado hasta el momento.
 class SolverBranchAndBound {
 private:
-    // Umbral de tamano (nro de vertices) para elegir la heuristica de cota
-    // inferior. Por debajo se usa Scatter: da la cota mas ajustada y a este
-    // tamano es barato. Por encima se usa GRASP, que construye caminos largos
-    // que llenan el presupuesto casi tan bien como Scatter pero ~8x mas barato
-    // (el 2-opt de Scatter escala ~O(L^2..L^3) en el largo del camino y en
-    // grafos grandes se dispara). Es calibrable; el driver real del costo es el
-    // largo del camino (que depende de W), no solo la cantidad de vertices.
-    static constexpr int UMBRAL_SCATTER = 1001;
-    // Construcciones GRASP (construir+refinar, se queda con la mejor) usadas
-    // como cota inferior en grafos por encima de UMBRAL_SCATTER. 20 equilibra
-    // calidad/tiempo: a 1000 vertices (caso de evaluacion) da ~97% del beneficio
-    // de Scatter en ~1/4 del tiempo, y con menos varianza que valores mas bajos.
-    static constexpr int ITER_GRASP_COTA = 20;
-
     const Grafo* grafo;
     std::mt19937* rng;     // no-dueño: se propaga a las heuristicas de cota inferior (Scatter/Grasp)
     long maxIteraciones;   // tope de expansiones de nodo
@@ -65,8 +54,9 @@ private:
     // Precomputa maxBenefEntrada y totalBenefEntrada a partir de las aristas.
     void precomputarCotas();
 
-    // Calcula el incumbente inicial eligiendo la heuristica segun el tamano del
-    // grafo (ver UMBRAL_GRAFO_GRANDE). Devuelve el mejor camino factible.
+    // Calcula el incumbente inicial: le pide el plan al Planner (que elige las
+    // heuristicas y sus parametros segun el grafo) y corre cada paso, quedandose
+    // con el mejor camino factible. Devuelve ese camino.
     Camino calcularCotaInferior();
 
     // Si el camino no termina en el destino lo cierra con el camino mas corto.

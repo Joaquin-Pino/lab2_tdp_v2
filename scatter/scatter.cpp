@@ -6,19 +6,16 @@
 using namespace std;
 
 Scatter::Scatter(const Grafo& grafo, std::mt19937& rng, int maxNodosInsertar,
-                 double umbralDensidad, ModoInsercion modo)
+                 double umbralDensidad, ModoInsercion modo,
+                 int tamPoblacion, int tamRefSet)
     : grafo(&grafo), rng(&rng), grasp(grafo, rng),
       maxNodosInsertar(maxNodosInsertar), umbralDensidad(umbralDensidad),
-      modo(modo) {
+      modo(modo), tamPoblacion(tamPoblacion), tamRefSet(tamRefSet) {
     grafoEsDenso = densidadGrafo() >= umbralDensidad;
 }
 
 double Scatter::densidadGrafo() const {
-    int n = grafo->getCantVert();
-    if (n <= 1) return 0.0;
-    long m = 0;
-    for (int v = 0; v < n; ++v) m += (long)grafo->getVecinos(v).size();
-    return (double)m / ((double)n * (n - 1));
+    return grafo->getDensidad();
 }
 
 // ---------------------------------------------------------------------------
@@ -26,8 +23,8 @@ double Scatter::densidadGrafo() const {
 // ---------------------------------------------------------------------------
 
 Camino Scatter::resolver(int maxIter) {
-    vector<Camino> poblacion = grasp.generarPoblacion(TAM_POBLACION);
-    vector<Camino> refSet = seleccionarRefSet(poblacion, TAM_REFSET);
+    vector<Camino> poblacion = grasp.generarPoblacion(tamPoblacion);
+    vector<Camino> refSet = seleccionarRefSet(poblacion, tamRefSet);
 
     for (int iter = 0; iter < maxIter; ++iter) {
         vector<Camino> candidatos = refSet; // refSet actual sobrevive a la seleccion
@@ -38,7 +35,7 @@ Camino Scatter::resolver(int maxIter) {
             }
         }
 
-        vector<Camino> nuevo = seleccionarRefSet(candidatos, TAM_REFSET);
+        vector<Camino> nuevo = seleccionarRefSet(candidatos, tamRefSet);
         if (mismosRefSet(nuevo, refSet)) break; // refSet estable -> converge
         refSet = nuevo;
     }

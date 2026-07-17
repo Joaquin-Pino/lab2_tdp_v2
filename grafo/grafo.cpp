@@ -58,6 +58,19 @@ const vector<Nodo>& Grafo::getVecinos(int idNodo) const {
 int Grafo::getCantVert() const { return cantVert;}
 int Grafo::getMaxW() const { return maxW;}
 
+int Grafo::getCantAristas() const {
+    long grados = 0;
+    for (const auto& vecinos : listaAdy) grados += (long)vecinos.size();
+    return (int)(grados / 2); // cada arista no dirigida aparece en dos extremos
+}
+
+double Grafo::getDensidad() const {
+    if (cantVert <= 1) return 0.0;
+    long grados = 0;
+    for (const auto& vecinos : listaAdy) grados += (long)vecinos.size();
+    return (double)grados / ((double)cantVert * (cantVert - 1));
+}
+
 vector<int> Grafo::dijkstra(int origen) const {
     vector<int> dist(cantVert, INT_MAX);
     priority_queue<pair<int,int>,

@@ -25,7 +25,10 @@
 class Grasp {
 public:
     // rng compartido inyectado desde afuera; debe sobrevivir al Grasp.
-    Grasp(const Grafo& grafo, std::mt19937& rng, double alpha = 0.3);
+    // umbralRefine: por encima de ese tamano refinar() omite el 2-opt (default =
+    // valor calibrado previo). Se expone para que el Planner lo pueda ajustar.
+    Grasp(const Grafo& grafo, std::mt19937& rng, double alpha = 0.3,
+          int umbralRefine = 500);
 
     // Una construccion golosa aleatorizada: parte de [0] y extiende por la
     // RCL, cerrando al destino. Si la extension se traba antes de llegar,
@@ -50,7 +53,8 @@ private:
 
     // Por encima de este tamano refinar() omite el 2-opt: sobre caminos largos
     // es O(L^2) por pasada y no mejora lo que ya aporta rellenar() en construir().
-    static constexpr int UMBRAL_REFINE = 500;
+    // Lo fija el ctor (default calibrado); el Planner lo puede ajustar.
+    int umbralRefine;
 
     struct CandidatoExtension {
         int nodo;

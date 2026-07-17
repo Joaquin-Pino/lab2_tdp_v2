@@ -9,14 +9,15 @@ KOPT_SRC          = kopt/kopt.cpp
 BREAKOUT_SRC      = breakout/breakout.cpp
 GRASP_SRC         = grasp/grasp.cpp
 SCATTER_SRC       = scatter/scatter.cpp
+PLANNER_SRC       = planner/planner.cpp
 BNB_SRC           = branchAndBound/branchAndBound.cpp
 
 HEADERS = nodo/nodo.h grafo/grafo.h camino/camino.h solverGreedy/solverGreedy.h
 
-SOLVERS_SRC = $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(BREAKOUT_SRC) $(GRASP_SRC) $(SCATTER_SRC) $(BNB_SRC)
-SOLVERS_HDR = $(HEADERS) algoritmos/algoritmo.h kopt/kopt.h breakout/breakout.h grasp/grasp.h scatter/scatter.h branchAndBound/branchAndBound.h
+SOLVERS_SRC = $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(BREAKOUT_SRC) $(GRASP_SRC) $(SCATTER_SRC) $(PLANNER_SRC) $(BNB_SRC)
+SOLVERS_HDR = $(HEADERS) algoritmos/algoritmo.h kopt/kopt.h breakout/breakout.h grasp/grasp.h scatter/scatter.h planner/planner.h branchAndBound/branchAndBound.h
 
-all: main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout testGrasp testScatter testBranchAndBound
+all: main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout testGrasp testScatter testPlanner testBranchAndBound
 
 main: $(SOLVERS_SRC) main.cpp $(SOLVERS_HDR)
 	$(CXX) $(CXXFLAGS) -o $@ $(SOLVERS_SRC) main.cpp
@@ -45,6 +46,9 @@ testGrasp: $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KO
 testScatter: $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(GRASP_SRC) $(SCATTER_SRC) scatter/testScatter.cpp $(HEADERS) algoritmos/algoritmo.h kopt/kopt.h grasp/grasp.h scatter/scatter.h
 	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(CAMINO_SRC) $(SOLVER_GREEDY_SRC) $(ALGORITMO_SRC) $(KOPT_SRC) $(GRASP_SRC) $(SCATTER_SRC) scatter/testScatter.cpp
 
+testPlanner: $(GRAFO_SRC) $(PLANNER_SRC) planner/testPlanner.cpp nodo/nodo.h grafo/grafo.h planner/planner.h
+	$(CXX) $(CXXFLAGS) -o $@ $(GRAFO_SRC) $(PLANNER_SRC) planner/testPlanner.cpp
+
 testBranchAndBound: $(SOLVERS_SRC) branchAndBound/testBranchAndBound.cpp $(SOLVERS_HDR)
 	$(CXX) $(CXXFLAGS) -o $@ $(SOLVERS_SRC) branchAndBound/testBranchAndBound.cpp
 
@@ -54,4 +58,4 @@ benchRunner: $(SOLVERS_SRC) benchmark/benchRunner.cpp $(SOLVERS_HDR)
 	$(CXX) $(CXXFLAGS) -o $@ $(SOLVERS_SRC) benchmark/benchRunner.cpp
 
 clean:
-	rm -f main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout testGrasp testScatter testBranchAndBound benchRunner
+	rm -f main testGrafo testCamino testSolverGreedy testAlgoritmo testKopt testBreakout testGrasp testScatter testPlanner testBranchAndBound benchRunner
