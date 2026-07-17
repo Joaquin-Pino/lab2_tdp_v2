@@ -148,23 +148,6 @@ public:
         std::cout << "test_dijkstra: OK\n";
     }
 
-    static void test_dijkstraInvertido() {
-        // mismo grafo, dijkstraInvertido desde 3
-        // dist[v] = costo minimo de v hasta 3 (la cota que usa la poda de B&B)
-        Grafo g(4, 5, 20);
-        g.insertarArista(0, 1, 1, 0);
-        g.insertarArista(0, 2, 4, 0);
-        g.insertarArista(1, 2, 2, 0);
-        g.insertarArista(1, 3, 5, 0);
-        g.insertarArista(2, 3, 1, 0);
-
-        auto dist = g.dijkstraInvertido(3);
-        assert(dist[3] == 0);
-        assert(dist[2] == 1);
-        assert(dist[1] == 3); // 1->2->3
-        assert(dist[0] == 4); // 0->1->2->3
-        std::cout << "test_dijkstraInvertido: OK\n";
-    }
 };
 
 int main() {
@@ -177,7 +160,6 @@ int main() {
     TestGrafo::test_getAristaNoExiste();
     TestGrafo::test_cargarDesdeArchivo();
     TestGrafo::test_dijkstra();
-    TestGrafo::test_dijkstraInvertido();
     std::cout << "--- Todos los tests de Grafo pasaron ---\n";
     return 0;
 }

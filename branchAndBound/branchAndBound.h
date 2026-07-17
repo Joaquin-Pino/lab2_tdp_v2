@@ -20,7 +20,10 @@
 //     con dos podas:
 //       - factibilidad en peso (ec. 3 del enunciado):
 //           pesoAcum + costo(vl->v) + distInv[v] > W   => se descarta v
-//         con distInv = dijkstraInvertido(destino), precomputado una vez.
+//         con distInv = dijkstra(destino), precomputado una vez (grafo no
+//         dirigido: la distancia de v al destino es la misma que la de
+//         destino a v, asi que un solo dijkstra(destino) sirve como cota
+//         invertida para todos los nodos).
 //       - cota superior de beneficio: beneficioAcum + beneficioRestante <= mejor
 //         donde beneficioRestante suma la mejor arista de entrada de cada nodo
 //         aun no usado (sobreestimacion admisible).
@@ -47,7 +50,7 @@ private:
     long maxIteraciones;   // tope de expansiones de nodo
     long iteraciones;      // contador interno de expansiones
 
-    std::vector<int> distInv;          // dijkstraInvertido(destino): min costo v->destino
+    std::vector<int> distInv;          // dijkstra(destino): min costo v->destino
     std::vector<int> maxBenefEntrada;  // mejor beneficio de arista entrante por nodo
     long totalBenefEntrada;            // suma de maxBenefEntrada (cota superior global)
 

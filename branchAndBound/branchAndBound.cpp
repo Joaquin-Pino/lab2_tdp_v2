@@ -132,7 +132,7 @@ Camino SolverBranchAndBound::resolver() {
     int origen = grafo->getIdNodoInicial();
     int n = grafo->getCantVert();
 
-    distInv = grafo->dijkstraInvertido(destino);
+    distInv = grafo->dijkstra(destino);
 
     // 1) cota inferior con las heuristicas
     mejorCamino.clear();

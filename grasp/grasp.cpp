@@ -10,7 +10,7 @@ Grasp::Grasp(const Grafo& grafo, std::mt19937& rng, double alpha)
     // Se precalcula una sola vez por instancia: es el costo minimo de cada
     // nodo hasta el destino, usado como cota para podar candidatos infactibles
     // tanto en candidatosExtension() como implicitamente en completarHastaDestino().
-    distInv = grafo.dijkstraInvertido(grafo.getIdNodoFinal());
+    distInv = grafo.dijkstra(grafo.getIdNodoFinal());
 }
 
 Camino Grasp::construir() {

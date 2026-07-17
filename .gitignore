@@ -9,6 +9,7 @@ testBreakout
 testKopt
 testScatter
 testGrasp
+testBranchAndBound
 main
 benchRunner
 benchmark

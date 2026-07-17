@@ -116,14 +116,6 @@ vector<int> Grafo::dijkstraCamino(int origen, int destino) const {
     return camino; // [origen, ..., destino]
 }
 
-vector<int> Grafo::dijkstraInvertido(int destino) const {
-    // dist[v] = costo minimo en peso de v hasta destino.
-    // Como el grafo es no dirigido, la lista de adyacencia invertida coincide
-    // con listaAdy, y el costo de v a destino es el mismo que de destino a v:
-    // basta un Dijkstra desde el destino.
-    return dijkstra(destino);
-}
-
 Nodo Grafo::getArista(int a, int b) const{
     // consulta O(1) sobre el indice ady
     auto it = ady[a].find(b);

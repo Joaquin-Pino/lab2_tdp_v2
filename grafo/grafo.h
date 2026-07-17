@@ -34,11 +34,6 @@ public:
 
     std::vector<int> dijkstra(int origen) const;
 
-    // dist[v] = costo minimo de v hasta destino. Se mantiene como metodo aparte
-    // porque expresa la cota que usa la poda de Branch and Bound; al ser el
-    // grafo no dirigido coincide con dijkstra(destino).
-    std::vector<int> dijkstraInvertido(int destino) const;
-
     std::vector<int> dijkstraCamino(int origen, int destino) const;
 
     Nodo getArista(int a, int b)const;

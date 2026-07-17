@@ -15,9 +15,10 @@
 // uno al azar entre ellos. Con alpha=0 el corte queda en peorEf y la RCL
 // incluye a todos los candidatos (maximo azar); con alpha=1 el corte queda en
 // mejorEf y la RCL se reduce a los empatados en la mejor eficiencia (puro
-// goloso). distInv (dijkstraInvertido al destino) se precalcula una vez en
-// el constructor y se usa para descartar candidatos que dejarian el camino
-// sin forma de llegar al destino dentro del presupuesto.
+// goloso). distInv (dijkstra(destino): costo minimo de cada nodo al destino,
+// valido como cota invertida por ser el grafo no dirigido) se precalcula una
+// vez en el constructor y se usa para descartar candidatos que dejarian el
+// camino sin forma de llegar al destino dentro del presupuesto.
 //
 // Tambien sirve como metaheuristica standalone: resolver(maxIter) repite
 // construccion + refinamiento 2-opt y se queda con el mejor beneficio.
@@ -45,7 +46,7 @@ private:
     std::mt19937* rng; // no-dueño: lo inyecta quien construye el solver
     double alpha; // 0 = puro goloso, 1 = puro azar
 
-    std::vector<int> distInv; // dijkstraInvertido(destino): min costo v->destino
+    std::vector<int> distInv; // dijkstra(destino): min costo v->destino
 
     // Por encima de este tamano refinar() omite el 2-opt: sobre caminos largos
     // es O(L^2) por pasada y no mejora lo que ya aporta rellenar() en construir().
