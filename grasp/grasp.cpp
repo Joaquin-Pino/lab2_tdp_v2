@@ -216,12 +216,17 @@ vector<Camino> Grasp::generarPoblacion(int n) {
 
 // GRASP como metaheuristica standalone: repite construir+refinar maxIter
 // veces y se queda con la de mayor beneficio (multi-start).
-Camino Grasp::resolver(int maxIter) {
+Camino Grasp::resolver(int maxIter, int paciencia) {
     Camino mejor = refinar(construir());
+    int sinMejora = 0; // construcciones seguidas sin superar al incumbente
     for (int iter = 1; iter < maxIter; ++iter) {
         Camino candidato = refinar(construir());
-        if (candidato.getBeneficioTotal() > mejor.getBeneficioTotal())
+        if (candidato.getBeneficioTotal() > mejor.getBeneficioTotal()) {
             mejor = candidato;
+            sinMejora = 0;
+        } else if (paciencia > 0 && ++sinMejora >= paciencia) {
+            break; // meseta: 'paciencia' iteraciones sin mejora -> corta
+        }
     }
     return mejor;
 }

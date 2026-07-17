@@ -2,59 +2,58 @@
 
 Planner::Planner(const Grafo& grafo) : grafo(&grafo) {}
 
-PasoCota Planner::pasoGreedy() const {
-    PasoCota paso;
-    paso.heuristica = PasoCota::Heuristica::GREEDY;
-    return paso;
+double Planner::gradoMedio() const {
+    int n = grafo->getCantVert();
+    if (n <= 1) return 0.0;
+    return grafo->getDensidad() * (n - 1); // 2M/(N(N-1)) * (N-1) = 2M/N
 }
 
 PasoCota Planner::pasoScatter(int iteraciones) const {
     PasoCota paso;
     paso.heuristica = PasoCota::Heuristica::SCATTER;
     paso.iteraciones = iteraciones;
-    // tamPoblacion / tamRefSet se dejan en el default calibrado (30 / 10).
+    // tamPoblacion / tamRefSet en el default calibrado (30 / 10).
     return paso;
 }
 
-PasoCota Planner::pasoGrasp(int iteraciones) const {
+PasoCota Planner::pasoGrasp(int iteraciones, int paciencia) const {
     PasoCota paso;
     paso.heuristica = PasoCota::Heuristica::GRASP;
     paso.iteraciones = iteraciones;
+    paso.paciencia = paciencia;
     return paso;
 }
 
-int Planner::iteracionesGrasp() const {
-    int n = grafo->getCantVert();
-    // Escala inversa al tamano: en grafos chicos GRASP es barato y conviene
-    // exprimirlo; en grafos grandes cada construccion cuesta, asi que se baja el
-    // numero para que la cota no domine el tiempo total del B&B. El punto de
-    // partida (20) reproduce el viejo ITER_GRASP_COTA.
-    if (n <= UMBRAL_GRAFO_GRANDE) return 20;
-    if (n <= 5000) return 12;
-    return 6;
-}
-
-PlanCota Planner::planificar() const {
+PlanCota Planner::planificar(const Sonda& sonda) const {
     PlanCota plan;
 
-    // Piso universal: barato en cualquier tamano, garantiza al menos un candidato.
-    plan.pasos.push_back(pasoGreedy());
-
     int n = grafo->getCantVert();
+    int Lf = sonda.largoCaminoFinal;
 
-    if (n <= UMBRAL_GRAFO_GRANDE) {
-        // Grafo chico: portafolio Scatter + GRASP. Scatter da la cota mas ajustada
-        // (combina soluciones) y a este tamano es barato; sumar GRASP cubre los
-        // casos donde el operador de Scatter no encaja (mas robusto ante grafos
-        // desconocidos, que es justo el motivo del Planner).
-        plan.pasos.push_back(pasoScatter(5));
-        plan.pasos.push_back(pasoGrasp(iteracionesGrasp()));
+    // Costo estimado de una iteracion de Scatter en ESTE grafo, a partir del largo
+    // real del camino (medido por el B&B) y el grado medio. Si la sonda no logro
+    // construir un camino (Lf <= 1) se cae a un criterio conservador por tamano.
+    bool scatterAsequible;
+    if (Lf <= 1) {
+        scatterAsequible = (n <= 300);
     } else {
-        // Grafo grande: Scatter se dispara por los caminos largos, se usa solo
-        // GRASP escalado, que llena el presupuesto casi tan bien a una fraccion
-        // del costo.
-        plan.pasos.push_back(pasoGrasp(iteracionesGrasp()));
+        double costoScatter = (double)Lf * Lf * gradoMedio();
+        scatterAsequible = costoScatter <= UMBRAL_COSTO_SCATTER;
     }
+
+    // Scatter da la cota mas ajustada (combina soluciones) pero solo se paga cuando
+    // es asequible; en grafos con caminos largos se dispara y se omite.
+    if (scatterAsequible)
+        plan.pasos.push_back(pasoScatter(5));
+
+    // GRASP siempre: es barato y su rellenar() cubre el regimen combinatorio (donde
+    // el peso no ata y lo que sube el beneficio es insertar nodos). Mas multi-start
+    // cuando el greedy dejo mucho presupuesto libre; el corte por meseta evita
+    // gastar iteraciones de mas.
+    int tope = (sonda.holguraGreedy > HOLGURA_COMBINATORIA)
+                   ? ITER_GRASP_COMBINATORIO
+                   : ITER_GRASP_BASE;
+    plan.pasos.push_back(pasoGrasp(tope, PACIENCIA_GRASP));
 
     return plan;
 }

@@ -1,6 +1,5 @@
 #include <cassert>
 #include <iostream>
-#include <algorithm>
 
 #include "planner.h"
 #include "../grafo/grafo.h"
@@ -9,93 +8,91 @@ using namespace std;
 
 class TestPlanner {
 public:
-    // True si el plan contiene un paso con esa heuristica.
     static bool contiene(const PlanCota& plan, PasoCota::Heuristica h) {
         for (const PasoCota& p : plan.pasos)
             if (p.heuristica == h) return true;
         return false;
     }
 
-    // Grafo chico (4 nodos) denso: el plan debe ir a portafolio Scatter + GRASP,
-    // siempre con Greedy de piso.
-    static void test_grafoChico() {
+    static const PasoCota* pasoDe(const PlanCota& plan, PasoCota::Heuristica h) {
+        for (const PasoCota& p : plan.pasos)
+            if (p.heuristica == h) return &p;
+        return nullptr;
+    }
+
+    // Grafo chico (4 nodos, grado medio 2.5).
+    static Grafo grafoChico() {
         Grafo g(4, 5, 10);
         g.insertarArista(0, 1, 1, 1);
         g.insertarArista(0, 2, 1, 5);
         g.insertarArista(1, 3, 1, 1);
         g.insertarArista(2, 3, 1, 1);
         g.insertarArista(1, 2, 1, 5);
+        return g;
+    }
 
+    // Camino final corto => Scatter es asequible => aparece en el plan (ademas de
+    // GRASP, que va siempre).
+    static void test_scatterAsequibleCaminoCorto() {
+        Grafo g = grafoChico();
         Planner planner(g);
-        PlanCota plan = planner.planificar();
+        PlanCota plan = planner.planificar(Sonda{/*largoFinal*/ 10, /*holgura*/ 0.3});
 
-        assert(!plan.pasos.empty());
-        // Greedy siempre primero como piso universal.
-        assert(plan.pasos.front().heuristica == PasoCota::Heuristica::GREEDY);
-        assert(contiene(plan, PasoCota::Heuristica::GREEDY));
         assert(contiene(plan, PasoCota::Heuristica::SCATTER));
         assert(contiene(plan, PasoCota::Heuristica::GRASP));
-        cout << "test_grafoChico OK\n";
+        cout << "test_scatterAsequibleCaminoCorto OK\n";
     }
 
-    // Grafo grande sintetico (2000 nodos en cadena): el plan debe usar solo GRASP
-    // (mas Greedy), nunca Scatter, y con iteraciones positivas.
-    static void test_grafoGrande() {
-        const int n = 2000;
-        Grafo g(n, n - 1, 100000);
-        for (int i = 0; i + 1 < n; ++i)
-            g.insertarArista(i, i + 1, 1, 1);
-
+    // Mismo grafo pero con un camino final largo: L^2*grado supera el umbral =>
+    // Scatter deja de ser asequible => el plan usa solo GRASP.
+    static void test_scatterNoAsequibleCaminoLargo() {
+        Grafo g = grafoChico();
         Planner planner(g);
-        PlanCota plan = planner.planificar();
+        // 3000^2 * 2.5 = 2.25e7 > 2.0e7 (umbral) => no asequible.
+        PlanCota plan = planner.planificar(Sonda{/*largoFinal*/ 3000, /*holgura*/ 0.3});
 
-        assert(plan.pasos.front().heuristica == PasoCota::Heuristica::GREEDY);
-        assert(contiene(plan, PasoCota::Heuristica::GRASP));
         assert(!contiene(plan, PasoCota::Heuristica::SCATTER));
-        cout << "test_grafoGrande OK\n";
+        assert(contiene(plan, PasoCota::Heuristica::GRASP));
+        cout << "test_scatterNoAsequibleCaminoLargo OK\n";
     }
 
-    // Todos los pasos que corren una metaheuristica (Scatter/GRASP/Breakout)
-    // deben traer iteraciones > 0 y parametros en rango; Greedy no las usa.
-    static void test_parametrosEnRango() {
-        Grafo g(4, 5, 10);
-        g.insertarArista(0, 1, 1, 1);
-        g.insertarArista(0, 2, 1, 5);
-        g.insertarArista(1, 3, 1, 1);
-        g.insertarArista(2, 3, 1, 1);
-        g.insertarArista(1, 2, 1, 5);
-
+    // GRASP siempre presente, con corte por meseta (paciencia > 0) y tope positivo.
+    static void test_graspSiemprePresenteConMeseta() {
+        Grafo g = grafoChico();
         Planner planner(g);
-        PlanCota plan = planner.planificar();
+        PlanCota plan = planner.planificar(Sonda{3000, 0.3}); // sin Scatter
 
-        for (const PasoCota& p : plan.pasos) {
-            if (p.heuristica == PasoCota::Heuristica::SCATTER) {
-                assert(p.iteraciones > 0);
-                assert(p.tamPoblacion > 0);
-                assert(p.tamRefSet > 0);
-                assert(p.tamRefSet <= p.tamPoblacion);
-            }
-            if (p.heuristica == PasoCota::Heuristica::GRASP) {
-                assert(p.iteraciones > 0);
-                assert(p.alpha >= 0.0 && p.alpha <= 1.0);
-                assert(p.umbralRefine > 0);
-            }
-        }
-        cout << "test_parametrosEnRango OK\n";
+        const PasoCota* grasp = pasoDe(plan, PasoCota::Heuristica::GRASP);
+        assert(grasp != nullptr);
+        assert(grasp->iteraciones > 0);
+        assert(grasp->paciencia > 0);
+        assert(grasp->alpha >= 0.0 && grasp->alpha <= 1.0);
+        assert(grasp->umbralRefine > 0);
+        cout << "test_graspSiemprePresenteConMeseta OK\n";
     }
 
-    // El plan es determinista: mismo grafo -> mismo plan (el Planner es puro).
+    // Regimen combinatorio (holgura alta = el peso no ata) => mas multi-start de
+    // GRASP que en el regimen donde el peso ata.
+    static void test_regimenCombinatorioSubeIteraciones() {
+        Grafo g = grafoChico();
+        Planner planner(g);
+
+        PlanCota combinatorio = planner.planificar(Sonda{10, /*holgura*/ 0.9});
+        PlanCota pesoAta      = planner.planificar(Sonda{10, /*holgura*/ 0.1});
+
+        int itComb = pasoDe(combinatorio, PasoCota::Heuristica::GRASP)->iteraciones;
+        int itAta  = pasoDe(pesoAta,      PasoCota::Heuristica::GRASP)->iteraciones;
+        assert(itComb > itAta);
+        cout << "test_regimenCombinatorioSubeIteraciones OK\n";
+    }
+
+    // El plan es determinista: mismo grafo + misma sonda => mismo plan.
     static void test_esDeterminista() {
-        Grafo g(4, 5, 10);
-        g.insertarArista(0, 1, 1, 1);
-        g.insertarArista(0, 2, 1, 5);
-        g.insertarArista(1, 3, 1, 1);
-        g.insertarArista(2, 3, 1, 1);
-        g.insertarArista(1, 2, 1, 5);
-
+        Grafo g = grafoChico();
         Planner planner(g);
-        PlanCota a = planner.planificar();
-        PlanCota b = planner.planificar();
+        Sonda s{10, 0.3};
+        PlanCota a = planner.planificar(s);
+        PlanCota b = planner.planificar(s);
 
         assert(a.pasos.size() == b.pasos.size());
         for (size_t i = 0; i < a.pasos.size(); ++i)
@@ -105,9 +102,10 @@ public:
 };
 
 int main() {
-    TestPlanner::test_grafoChico();
-    TestPlanner::test_grafoGrande();
-    TestPlanner::test_parametrosEnRango();
+    TestPlanner::test_scatterAsequibleCaminoCorto();
+    TestPlanner::test_scatterNoAsequibleCaminoLargo();
+    TestPlanner::test_graspSiemprePresenteConMeseta();
+    TestPlanner::test_regimenCombinatorioSubeIteraciones();
     TestPlanner::test_esDeterminista();
     cout << "Todos los tests de Planner OK\n";
     return 0;

@@ -60,12 +60,30 @@ void SolverBranchAndBound::evaluarCandidato(Camino c) {
 }
 
 Camino SolverBranchAndBound::calcularCotaInferior() {
-    // El Planner decide, segun el grafo, que heuristicas correr como cota y con
-    // que parametros (antes esto eran las constantes UMBRAL_SCATTER / ITER_GRASP_
-    // COTA hardcodeadas aca). El B&B solo ejecuta el plan; evaluarCandidato se
-    // queda con el mejor, asi que agregar pasos nunca puede empeorar la cota.
+    // Greedy: piso universal barato y ademas SONDA de regimen de peso. Su camino
+    // beeline usa poco presupuesto cuando el peso "no ata" -> la holgura lo delata.
+    SolverGreedy greedy(*grafo);
+    Camino caminoGreedy = greedy.resolver();
+    int W = grafo->getMaxW();
+    double holguraGreedy = (W > 0)
+        ? 1.0 - (double)caminoGreedy.getPesoTotal() / W
+        : 0.0;
+    evaluarCandidato(caminoGreedy);
+
+    // Sonda GRASP: una construccion llena el presupuesto, asi que su largo es el
+    // largo REAL que Scatter/2-opt recorreria (el del greedy no sirve, es un
+    // beeline). Es la evidencia que el Planner necesita y ademas un candidato mas.
+    Grasp graspSonda(*grafo, *rng);
+    Camino caminoSonda = graspSonda.construir();
+    int largoFinal = caminoSonda.getLargo();
+    evaluarCandidato(caminoSonda);
+
+    // El Planner decide el plan a partir de la evidencia medida (antes esto eran
+    // las constantes UMBRAL_SCATTER / ITER_GRASP_COTA hardcodeadas aca). El B&B
+    // solo ejecuta el plan; evaluarCandidato se queda con el mejor, asi que agregar
+    // pasos nunca puede empeorar la cota.
     Planner planner(*grafo);
-    PlanCota plan = planner.planificar();
+    PlanCota plan = planner.planificar(Sonda{largoFinal, holguraGreedy});
 
     for (const PasoCota& paso : plan.pasos) {
         switch (paso.heuristica) {
@@ -82,7 +100,7 @@ Camino SolverBranchAndBound::calcularCotaInferior() {
             }
             case PasoCota::Heuristica::GRASP: {
                 Grasp grasp(*grafo, *rng, paso.alpha, paso.umbralRefine);
-                evaluarCandidato(grasp.resolver(paso.iteraciones));
+                evaluarCandidato(grasp.resolver(paso.iteraciones, paso.paciencia));
                 break;
             }
             case PasoCota::Heuristica::KOPT: {

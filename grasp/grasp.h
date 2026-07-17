@@ -40,9 +40,12 @@ public:
     // sembrar la poblacion inicial de metaheuristicas combinadoras (Scatter).
     std::vector<Camino> generarPoblacion(int n);
 
-    // GRASP como solver standalone: construir()+refinar() maxIter veces,
-    // se queda con el de mayor beneficio.
-    Camino resolver(int maxIter);
+    // GRASP como solver standalone: construir()+refinar() hasta maxIter veces,
+    // quedandose con el de mayor beneficio. Si paciencia > 0, corta antes cuando
+    // pasan 'paciencia' construcciones seguidas sin mejorar el incumbente
+    // (meseta): asi el nro de iteraciones lo decide la evidencia y no una
+    // constante fija. paciencia = 0 desactiva el corte (comportamiento previo).
+    Camino resolver(int maxIter, int paciencia = 0);
 
 private:
     const Grafo* grafo;
