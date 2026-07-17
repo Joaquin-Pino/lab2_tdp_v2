@@ -6,6 +6,7 @@
 #include <chrono>
 #include <limits>
 #include <random>
+#include <optional>
 
 #include "grafo/grafo.h"
 #include "camino/camino.h"
@@ -25,11 +26,20 @@ class Menu {
 private:
     unique_ptr<Grafo> grafo;
 
-    // Un unico generador compartido por todos los solvers (se pasa por
-    // referencia). Por defecto se siembra con random_device: cada ejecucion
-    // difiere. La opcion "Cambiar semilla" del menu permite fijarlo para
-    // reproducir una corrida.
-    mt19937 rng{random_device{}()};
+    // Semilla fijada por el usuario para la PROXIMA corrida unicamente
+    // (opcion "Cambiar semilla"). Cada ejecutarX() pide un rng nuevo via
+    // obtenerRng(): si hay semilla pendiente la consume y la limpia; si no,
+    // siembra con random_device (semilla distinta en cada corrida).
+    optional<unsigned int> semillaPendiente;
+
+    mt19937 obtenerRng() {
+        if (semillaPendiente) {
+            mt19937 rng(*semillaPendiente);
+            semillaPendiente.reset();
+            return rng;
+        }
+        return mt19937(random_device{}());
+    }
 
     bool hayGrafoCargado() const {
         if (!grafo) {
@@ -70,6 +80,7 @@ private:
     }
 
     void ejecutarBranchAndBound() {
+        mt19937 rng = obtenerRng();
         SolverBranchAndBound bnb(*grafo, rng);
         auto inicio = high_resolution_clock::now();
         Camino solucion = bnb.resolver();
@@ -84,6 +95,7 @@ private:
     }
 
     void ejecutar2Opt() {
+        mt19937 rng = obtenerRng();
         Kopt kopt(*grafo, rng);
         auto inicio = high_resolution_clock::now();
         Camino solucion = kopt.resolver();
@@ -95,6 +107,7 @@ private:
     void ejecutarBreakout() {
         const int maxIter = 100;
         const int L0 = 2;
+        mt19937 rng = obtenerRng();
         Breakout breakout(*grafo, rng, maxIter, L0);
         auto inicio = high_resolution_clock::now();
         Camino solucion = breakout.resolver();
@@ -104,6 +117,7 @@ private:
     }
 
     void ejecutarScatter(){
+        mt19937 rng = obtenerRng();
         Scatter scatterSolver(*grafo, rng);
         auto inicio = high_resolution_clock::now();
         Camino solucion = scatterSolver.resolver(5);
@@ -143,7 +157,7 @@ private:
     }
 
     void cambiarSemilla() {
-        cout << "Ingrese la nueva semilla (entero): ";
+        cout << "Ingrese la semilla para la proxima corrida (entero): ";
         unsigned int semilla;
         cin >> semilla;
         if (cin.fail()) {
@@ -152,8 +166,9 @@ private:
             cout << "Semilla invalida.\n";
             return;
         }
-        rng.seed(semilla);
-        cout << "Semilla fijada en " << semilla << " (corridas reproducibles).\n";
+        semillaPendiente = semilla;
+        cout << "La proxima corrida usara la semilla " << semilla
+             << ". Las corridas siguientes volveran a usar semillas aleatorias.\n";
     }
 
     void ingresarCaminoManual() {

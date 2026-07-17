@@ -38,7 +38,7 @@ private:
     // (el 2-opt de Scatter escala ~O(L^2..L^3) en el largo del camino y en
     // grafos grandes se dispara). Es calibrable; el driver real del costo es el
     // largo del camino (que depende de W), no solo la cantidad de vertices.
-    static constexpr int UMBRAL_SCATTER = 100;
+    static constexpr int UMBRAL_SCATTER = 1001;
     // Construcciones GRASP (construir+refinar, se queda con la mejor) usadas
     // como cota inferior en grafos por encima de UMBRAL_SCATTER. 20 equilibra
     // calidad/tiempo: a 1000 vertices (caso de evaluacion) da ~97% del beneficio
