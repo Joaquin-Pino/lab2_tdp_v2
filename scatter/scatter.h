@@ -8,6 +8,7 @@
 #include <random>
 #include <unordered_set>
 #include <utility>
+#include <climits>
 
 class Scatter {
 public:
@@ -26,7 +27,11 @@ public:
     Scatter(const Grafo& grafo, std::mt19937& rng, int maxNodosInsertar = 3,
             double umbralDensidad = 0.6, ModoInsercion modo = MEJOR);
 
-    Camino resolver(int maxIter);
+    // maxCombinaciones: tope determinista de combinaciones (combinar+refinar)
+    // en total. Al alcanzarlo corta y devuelve el mejor camino visto. Acota el
+    // trabajo en grafos grandes (donde el 2-opt de refinar escala con el largo
+    // del camino) sin depender del reloj, asi el resultado es reproducible.
+    Camino resolver(int maxIter, long maxCombinaciones = LONG_MAX);
     Camino combinar(const Camino& C1, const Camino& C2) const;
 
 private:

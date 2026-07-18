@@ -25,16 +25,24 @@ double Scatter::densidadGrafo() const {
 // resolver: busqueda dispersa (scatter search)
 // ---------------------------------------------------------------------------
 
-Camino Scatter::resolver(int maxIter) {
+Camino Scatter::resolver(int maxIter, long maxCombinaciones) {
     vector<Camino> poblacion = grasp.generarPoblacion(TAM_POBLACION);
     vector<Camino> refSet = seleccionarRefSet(poblacion, TAM_REFSET);
 
+    long comb = 0; // combinaciones (combinar+refinar) consumidas
     for (int iter = 0; iter < maxIter; ++iter) {
         vector<Camino> candidatos = refSet; // refSet actual sobrevive a la seleccion
 
         for (size_t i = 0; i < refSet.size(); ++i) {
             for (size_t j = i + 1; j < refSet.size(); ++j) {
+                if (comb >= maxCombinaciones) {
+                    // Se agoto el presupuesto en mitad de la ronda: candidatos ya
+                    // incluye el refSet actual mas lo combinado hasta aca, asi que
+                    // el mejor de candidatos es >= al mejor conocido.
+                    return seleccionarRefSet(candidatos, TAM_REFSET).front();
+                }
                 candidatos.push_back(refinar(combinar(refSet[i], refSet[j])));
+                ++comb;
             }
         }
 

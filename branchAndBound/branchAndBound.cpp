@@ -62,17 +62,11 @@ Camino SolverBranchAndBound::calcularCotaInferior() {
     SolverGreedy greedy(*grafo);
     evaluarCandidato(greedy.resolver());
 
-    // En grafos chicos se paga Scatter, que da la cota mas ajustada (combina
-    // soluciones) y aca es barato. En grafos grandes su 2-opt se dispara con
-    // los caminos largos, asi que se usa GRASP: construye caminos que llenan el
-    // presupuesto con ~95% del beneficio de Scatter a una fraccion del costo.
-    if (grafo->getCantVert() <= UMBRAL_SCATTER) {
-        Scatter scatter(*grafo, *rng);
-        evaluarCandidato(scatter.resolver(5));
-    } else {
-        Grasp grasp(*grafo, *rng);
-        evaluarCandidato(grasp.resolver(ITER_GRASP_COTA));
-    }
+    // Scatter es la mejor heuristica, asi que se usa como cota inferior en todo
+    // tamano. En grafos grandes su 2-opt se dispara con los caminos largos, por
+    // eso se lo acota con MAX_COMB_SCATTER (tope determinista de combinaciones).
+    Scatter scatter(*grafo, *rng);
+    evaluarCandidato(scatter.resolver(ITER_SCATTER_COTA, MAX_COMB_SCATTER));
 
     // Red de seguridad: si ninguna heuristica dio un camino completo, usar el
     // camino de menor costo de origen a destino.
