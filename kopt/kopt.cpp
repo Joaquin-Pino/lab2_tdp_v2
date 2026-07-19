@@ -41,11 +41,16 @@ bool Kopt::verificarAristas(const vector<int>& combinacion, const vector<int>& c
     }
     return true;
 }
-Camino Kopt::resolver(const Camino& inicial, bool primeraMejora, int k) {
+Camino Kopt::resolver(const Camino& inicial, bool primeraMejora, int k, int maxPasadas) {
     Camino mejorActual = inicial;
     bool huboMejora = true;
 
+    int pasadas = 0;
     while (huboMejora) {
+        // Tope opcional de pasadas: en caminos largos cada pasada cuesta O(L^2)
+        // (materializa C(L,2) combinaciones). -1 => sin tope (convergencia).
+        if (maxPasadas >= 0 && pasadas >= maxPasadas) break;
+        ++pasadas;
         huboMejora = false;
         vector<int> caminoActual = mejorActual.getCamino();
         int n = static_cast<int>(caminoActual.size());

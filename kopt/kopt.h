@@ -37,7 +37,13 @@ public:
     // vez de llamar al goloso. Pensado para refinar el camino que entrega
     // granSalto() (o cualquier otro camino factible), por ejemplo dentro
     // de Breakout despues de un salto.
-    Camino resolver(const Camino& inicial, bool primeraMejora = true, int k = 2);
+    // maxPasadas: tope de pasadas del bucle de mejora. -1 (default) = ilimitado
+    // (corre hasta convergencia, como antes). Un valor >= 0 acota el costo en
+    // caminos largos, donde cada pasada materializa C(L,2) combinaciones. Es
+    // opt-in: los llamadores existentes (Breakout, 2-OPT) no lo pasan y no
+    // cambian de comportamiento.
+    Camino resolver(const Camino& inicial, bool primeraMejora = true, int k = 2,
+                    int maxPasadas = -1);
 
     Camino granSalto(const Camino& inicial, int kSalto);
 

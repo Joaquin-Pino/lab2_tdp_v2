@@ -17,7 +17,6 @@ public:
     // (aplica el primer injerto factible). Se elige por parametro del ctor.
     enum ModoInsercion { MEJOR, PRIMERA };
 
-
     // umbralDensidad = 0.6: en un grafo no dirigido cada arista suma 2 al total
     // de grados, asi que la densidad duplica a la del mismo conjunto de aristas
     // leido como dirigido. El 0.6 conserva la clasificacion denso/disperso que
@@ -47,6 +46,16 @@ private:
     // Tamanos de la busqueda dispersa (calibrables).
     static constexpr int TAM_POBLACION = 30;
     static constexpr int TAM_REFSET = 10;
+    // Cuantos combos crudos (los de mayor beneficio) se refinan por ronda. El
+    // refinar() con 2-opt es lo caro, asi que en vez de refinar los ~45 combos
+    // se refina solo este pool de prometedores y despues se reselecciona el
+    // refSet. 2*TAM_REFSET deja margen para que un combo que mejora mucho al
+    // refinarse no se pierda por su beneficio crudo.
+    static constexpr int POOL_REFINAR = 2 * TAM_REFSET;
+    // Sobre este largo de camino, refinar() acota el 2-opt a MAX_PASADAS_REFINE
+    // pasadas (cada pasada es O(L^2)); en caminos mas cortos corre a convergencia.
+    static constexpr int UMBRAL_LARGO_REFINE = 200;
+    static constexpr int MAX_PASADAS_REFINE = 2;
 
     // Densidad del grafo no dirigido: suma de grados / pares ordenados posibles,
     // o sea 2M / (N(N-1)), con M = cantidad de aristas no dirigidas. Vale 1 en

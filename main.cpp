@@ -82,6 +82,7 @@ private:
     void ejecutarBranchAndBound() {
         mt19937 rng = obtenerRng();
         SolverBranchAndBound bnb(*grafo, rng);
+        cout << "Heuristica usada como cota inferior: " << bnb.nombreCotaInferior() << "\n";
         auto inicio = high_resolution_clock::now();
         Camino solucion = bnb.resolver();
         auto fin = high_resolution_clock::now();

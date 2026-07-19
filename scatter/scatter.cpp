@@ -29,24 +29,31 @@ Camino Scatter::resolver(int maxIter, long maxCombinaciones) {
     vector<Camino> poblacion = grasp.generarPoblacion(TAM_POBLACION);
     vector<Camino> refSet = seleccionarRefSet(poblacion, TAM_REFSET);
 
-    long comb = 0; // combinaciones (combinar+refinar) consumidas
+    long comb = 0; // combinaciones consumidas (combinar es lo que se acota)
     for (int iter = 0; iter < maxIter; ++iter) {
-        vector<Camino> candidatos = refSet; // refSet actual sobrevive a la seleccion
-
-        for (size_t i = 0; i < refSet.size(); ++i) {
+        // 1) Combinar barato todos los pares del refSet (sin refinar todavia).
+        //    combinar() es mucho mas barato que el 2-opt de refinar().
+        vector<Camino> combinados;
+        bool presupuestoAgotado = false;
+        for (size_t i = 0; i < refSet.size() && !presupuestoAgotado; ++i) {
             for (size_t j = i + 1; j < refSet.size(); ++j) {
-                if (comb >= maxCombinaciones) {
-                    // Se agoto el presupuesto en mitad de la ronda: candidatos ya
-                    // incluye el refSet actual mas lo combinado hasta aca, asi que
-                    // el mejor de candidatos es >= al mejor conocido.
-                    return seleccionarRefSet(candidatos, TAM_REFSET).front();
-                }
-                candidatos.push_back(refinar(combinar(refSet[i], refSet[j])));
+                if (comb >= maxCombinaciones) { presupuestoAgotado = true; break; }
+                combinados.push_back(combinar(refSet[i], refSet[j]));
                 ++comb;
             }
         }
 
+        // 2) Refinar SOLO los combos mas prometedores por beneficio crudo. El
+        //    refSet de la ronda anterior ya viene refinado, asi que sobrevive
+        //    tal cual y compite con los combos ya pulidos.
+        vector<Camino> candidatos = refSet; // refSet actual sobrevive
+        for (const Camino& c : seleccionarRefSet(combinados, POOL_REFINAR))
+            candidatos.push_back(refinar(c));
+
         vector<Camino> nuevo = seleccionarRefSet(candidatos, TAM_REFSET);
+        // El mejor de 'candidatos' es siempre >= al mejor conocido (el refSet
+        // viejo esta incluido), asi que cortar aca nunca empeora la solucion.
+        if (presupuestoAgotado) return nuevo.front();
         if (mismosRefSet(nuevo, refSet)) break; // refSet estable -> converge
         refSet = nuevo;
     }
@@ -204,7 +211,12 @@ bool Scatter::sinDuplicados(const vector<int>& mitad1,
 
 Camino Scatter::refinar(const Camino& solucion) const {
     Kopt kopt(*grafo, *rng);
-    return kopt.resolver(solucion, true, 2);
+    // En caminos largos cada pasada de 2-opt es O(L^2) (materializa C(L,2)
+    // combinaciones), asi que se la acota a pocas pasadas; en caminos cortos se
+    // deja correr hasta convergencia (maxPasadas = -1).
+    int largo = (int)solucion.getCamino().size();
+    int maxPasadas = (largo > UMBRAL_LARGO_REFINE) ? MAX_PASADAS_REFINE : -1;
+    return kopt.resolver(solucion, true, 2, maxPasadas);
 }
 
 // ---------------------------------------------------------------------------
